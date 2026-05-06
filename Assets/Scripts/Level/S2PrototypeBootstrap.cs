@@ -10,6 +10,7 @@ public static class S2PrototypeBootstrap
     private const string SceneName = "S2_RomanColumns";
     private const string LegacyStartSceneName = "SampleScene";
     private const string RootName = "__S2_RomanColumns_Prototype";
+    private const float GroundTopY = -1.8f;
 
 #if UNITY_EDITOR
     [MenuItem("GameJam/Build S2 Prototype Preview")]
@@ -58,10 +59,10 @@ public static class S2PrototypeBootstrap
     {
         var cameraObject = Camera.main != null ? Camera.main.gameObject : new GameObject("Main Camera");
         cameraObject.transform.SetParent(parent);
-        cameraObject.transform.position = new Vector3(-15f, 0.4f, -10f);
+        cameraObject.transform.position = new Vector3(-16f, 0.1f, -10f);
         var camera = cameraObject.GetComponent<Camera>() != null ? cameraObject.GetComponent<Camera>() : cameraObject.AddComponent<Camera>();
         camera.orthographic = true;
-        camera.orthographicSize = 3.2f;
+        camera.orthographicSize = 3.6f;
         camera.backgroundColor = new Color(0.76f, 0.82f, 0.9f);
         cameraObject.tag = "MainCamera";
     }
@@ -69,53 +70,63 @@ public static class S2PrototypeBootstrap
     private static void CreateBackground(Transform parent)
     {
         CreateBox(parent, "sky fallback", new Vector2(0f, 0.9f), new Vector2(70f, 7f), new Color(0.66f, 0.79f, 0.92f), -30, false);
-        CreateSprite(parent, "S2 blue temple background", "Assets/Art/Environment/RomanColumns/roman_columns_solid_blue_background.png", new Vector2(6f, 0.6f), new Vector2(0.42f, 0.42f), -20);
+        CreateSpriteHeight(parent, "S2 blue temple background", "Assets/Art/Environment/RomanColumns/roman_columns_solid_blue_background.png", new Vector2(12f, -0.25f), 7f, -20);
     }
 
     private static void CreateLevel(Transform parent)
     {
-        CreateBox(parent, "floor left", new Vector2(-14.5f, -2.15f), new Vector2(18f, 0.55f), new Color(0.09f, 0.1f, 0.11f), -3, true);
-        CreateBox(parent, "floor right", new Vector2(12.5f, -2.15f), new Vector2(32f, 0.55f), new Color(0.09f, 0.1f, 0.11f), -3, true);
-        CreateBox(parent, "pit floor", new Vector2(-3.8f, -2.95f), new Vector2(2.4f, 0.35f), new Color(0.24f, 0.25f, 0.26f), -2, true);
+        CreateBoxTop(parent, "floor left", new Vector2(-15.4f, GroundTopY), new Vector2(17.2f, 0.6f), new Color(0.08f, 0.09f, 0.1f), -3, true);
+        CreateBoxTop(parent, "floor right", new Vector2(8.8f, GroundTopY), new Vector2(29.6f, 0.6f), new Color(0.08f, 0.09f, 0.1f), -3, true);
+        CreateBoxTop(parent, "pit bottom collider", new Vector2(-5f, GroundTopY - 1.25f), new Vector2(2.4f, 0.35f), new Color(0.18f, 0.19f, 0.2f), -3, true);
 
-        CreateSprite(parent, "left ground art", "Assets/Art/Environment/RomanColumns/roman_columns_ground.png", new Vector2(-14.5f, -1.86f), new Vector2(0.85f, 0.18f), -2);
-        CreateSprite(parent, "right ground art", "Assets/Art/Environment/RomanColumns/roman_columns_ground_grass.png", new Vector2(11.5f, -1.86f), new Vector2(1.1f, 0.18f), -2);
+        CreateSpriteHeight(parent, "left ground art", "Assets/Art/Environment/RomanColumns/roman_columns_ground.png", new Vector2(-15.4f, GroundTopY), 2.5f, -2);
+        CreateSpriteHeight(parent, "right ground art", "Assets/Art/Environment/RomanColumns/roman_columns_ground_grass.png", new Vector2(8.8f, GroundTopY), 2.5f, -2);
+        CreateSpriteHeight(parent, "pit art", "Assets/Art/Environment/RomanColumns/roman_columns_pit.png", new Vector2(-5f, GroundTopY - 0.02f), 2.15f, -1);
+        CreateSpriteHeight(parent, "pit floor art", "Assets/Art/Environment/RomanColumns/roman_columns_pit_floor.png", new Vector2(-5f, GroundTopY - 1.25f), 1.3f, -1);
 
-        AddColumnSet(parent, -9.5f, "roman_column_01.png", 0.22f);
-        AddColumnSet(parent, -4.5f, "roman_columns_tree_trunk.png", 0.28f);
-        CreateSprite(parent, "tree leaves", "Assets/Art/Environment/RomanColumns/roman_columns_tree_leaves.png", new Vector2(-4.5f, -0.75f), new Vector2(0.36f, 0.36f), 1);
-        AddColumnSet(parent, 0.5f, "roman_columns_arch.png", 0.28f);
-        AddColumnSet(parent, 6f, "roman_column_02.png", 0.24f);
-        AddColumnSet(parent, 11f, "roman_column_broken.png", 0.23f);
-        AddColumnSet(parent, 16f, "roman_column_thin.png", 0.24f);
-        AddColumnSet(parent, 21f, "roman_columns_arch.png", 0.28f);
-        AddColumnSet(parent, 28f, "roman_column_thin.png", 0.24f);
+        AddColumn(parent, -11.8f, "roman_columns_arch.png", 1.2f);
+        AddColumn(parent, -7.5f, "roman_column_01.png", 1.95f);
+        AddTree(parent, -1.6f, 2.35f);
+        AddColumn(parent, 3.2f, "roman_columns_arch.png", 1.75f);
+        AddColumn(parent, 8.8f, "roman_column_02.png", 2.1f);
+        AddColumn(parent, 14.8f, "roman_column_broken.png", 1.75f);
+        AddColumn(parent, 20.2f, "roman_columns_arch.png", 1.6f);
+        AddColumn(parent, 26f, "roman_column_01.png", 1.75f);
+        AddColumn(parent, 31.5f, "roman_column_thin.png", 1.95f);
 
-        CreateBox(parent, "pushable stone preview", new Vector2(-12.7f, -1.72f), new Vector2(0.55f, 0.55f), new Color(0.95f, 0.68f, 0.72f, 0.8f), 4, true);
-        CreateSprite(parent, "stone art", "Assets/Art/Environment/RomanColumns/roman_columns_rolling_stone_animated.png", new Vector2(-12.7f, -1.72f), new Vector2(0.22f, 0.22f), 5);
+        CreateBox(parent, "pushable stone preview", new Vector2(-14.7f, GroundTopY + 0.43f), new Vector2(0.75f, 0.75f), new Color(0.95f, 0.68f, 0.72f, 0.75f), 4, true);
+        CreateSpriteHeight(parent, "stone art", "Assets/Art/Environment/RomanColumns/roman_columns_rolling_stone_animated.png", new Vector2(-14.7f, GroundTopY), 0.75f, 5);
 
-        CreateLight(parent, -13f, -0.5f);
-        CreateLight(parent, 0.5f, -0.25f);
-        CreateLight(parent, 7.8f, -1.45f);
-        CreateLight(parent, 21.5f, -0.4f);
-        CreateLight(parent, 30f, -0.45f);
+        CreateLight(parent, -12.8f, GroundTopY + 1.45f);
+        CreateLight(parent, -4.9f, GroundTopY - 0.35f);
+        CreateLight(parent, -1.4f, GroundTopY + 2.75f);
+        CreateLight(parent, 4.2f, GroundTopY + 1.7f);
+        CreateLight(parent, 13.8f, GroundTopY + 1.35f);
+        CreateLight(parent, 20.5f, GroundTopY + 1.9f);
+        CreateLight(parent, 29.6f, GroundTopY + 1.9f);
     }
 
-    private static void AddColumnSet(Transform parent, float x, string fileName, float scale)
+    private static void AddColumn(Transform parent, float x, string fileName, float height)
     {
-        CreateSprite(parent, fileName, "Assets/Art/Environment/RomanColumns/" + fileName, new Vector2(x, -0.95f), new Vector2(scale, scale), 2);
+        CreateSpriteHeight(parent, fileName, "Assets/Art/Environment/RomanColumns/" + fileName, new Vector2(x, GroundTopY), height, 2);
+    }
+
+    private static void AddTree(Transform parent, float x, float height)
+    {
+        CreateSpriteHeight(parent, "tree trunk", "Assets/Art/Environment/RomanColumns/roman_columns_tree_trunk.png", new Vector2(x, GroundTopY), height, 1);
+        CreateSpriteHeight(parent, "tree leaves", "Assets/Art/Environment/RomanColumns/roman_columns_tree_leaves.png", new Vector2(x, GroundTopY + height * 0.45f), height * 1.1f, 2);
     }
 
     private static void CreatePlayer(Transform parent)
     {
         var player = new GameObject("Player Prototype");
         player.transform.SetParent(parent);
-        player.transform.position = new Vector3(-18.2f, -1.73f, 0f);
-        player.transform.localScale = new Vector3(0.18f, 0.18f, 1f);
+        player.transform.position = new Vector3(-18.6f, GroundTopY + 0.47f, 0f);
+        player.transform.localScale = new Vector3(0.9f, 0.9f, 1f);
         player.AddComponent<SpriteRenderer>().sortingOrder = 20;
         player.AddComponent<Rigidbody2D>().gravityScale = 2.4f;
         var collider = player.AddComponent<BoxCollider2D>();
-        collider.size = new Vector2(1.5f, 3.6f);
+        collider.size = new Vector2(0.36f, 0.86f);
 
         var animator = player.AddComponent<PrototypeFrameAnimator>();
         animator.Configure(
@@ -131,9 +142,13 @@ public static class S2PrototypeBootstrap
                 "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_01.png",
                 "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_02.png",
                 "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_03.png",
+                "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_04.png",
+                "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_05.png",
                 "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_01.png",
                 "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_02.png",
-                "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_03.png"
+                "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_03.png",
+                "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_04.png",
+                "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_05.png"
             },
             new[]
             {
@@ -152,7 +167,7 @@ public static class S2PrototypeBootstrap
 
     private static void CreateLight(Transform parent, float x, float y)
     {
-        CreateBox(parent, "light orb", new Vector2(x, y), new Vector2(0.35f, 0.35f), new Color(1f, 0.96f, 0.28f, 0.85f), 8, false);
+        CreateBox(parent, "light orb", new Vector2(x, y), new Vector2(0.22f, 0.22f), new Color(1f, 0.96f, 0.28f, 0.9f), 8, false);
     }
 
     private static void CreateSprite(Transform parent, string name, string path, Vector2 position, Vector2 scale, int sortingOrder)
@@ -188,6 +203,11 @@ public static class S2PrototypeBootstrap
         }
     }
 
+    private static void CreateBoxTop(Transform parent, string name, Vector2 topCenter, Vector2 scale, Color color, int sortingOrder, bool solid)
+    {
+        CreateBox(parent, name, new Vector2(topCenter.x, topCenter.y - scale.y * 0.5f), scale, color, sortingOrder, solid);
+    }
+
     private static Sprite CreateSquareSprite(Color color)
     {
         var texture = new Texture2D(1, 1);
@@ -212,6 +232,24 @@ public static class S2PrototypeBootstrap
 #else
         return null;
 #endif
+    }
+
+    private static void CreateSpriteHeight(Transform parent, string name, string path, Vector2 bottomCenter, float height, int sortingOrder)
+    {
+        var sprite = LoadSprite(path);
+        if (sprite == null || sprite.bounds.size.y <= 0f)
+        {
+            return;
+        }
+
+        var obj = new GameObject(name);
+        obj.transform.SetParent(parent);
+        var scale = height / sprite.bounds.size.y;
+        obj.transform.localScale = new Vector3(scale, scale, 1f);
+        obj.transform.position = new Vector3(bottomCenter.x, bottomCenter.y + height * 0.5f, 0f);
+        var renderer = obj.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.sortingOrder = sortingOrder;
     }
 
     private static bool ShouldBuildInScene(string sceneName)

@@ -14,9 +14,9 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     }
 
     [SerializeField] private SpriteRenderer targetRenderer;
-    [SerializeField] private float idleFps = 5f;
-    [SerializeField] private float runFps = 10f;
-    [SerializeField] private float jumpFps = 8f;
+    [SerializeField] private float idleFps = 6f;
+    [SerializeField] private float runFps = 16f;
+    [SerializeField] private float jumpFps = 12f;
 
     private Sprite[] idleFrames;
     private Sprite[] runFrames;
@@ -122,8 +122,13 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         }
 
         var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        if (texture != null)
+        {
+            texture.filterMode = FilterMode.Bilinear;
+        }
+
         return texture != null
-            ? Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f)
+            ? Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 512f)
             : null;
 #else
         return null;
