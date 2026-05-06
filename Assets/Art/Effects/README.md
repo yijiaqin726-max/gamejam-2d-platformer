@@ -1,0 +1,4 @@
+特效用start color：颜色调这个，这个岩石碎片的特效可以用做悬崖上藤蔓碎裂石头和碎裂钟乳石的
+如果太亮就调start color里的透明度设置
+startlifetime：调粒子时长 利用particle system
+
