@@ -203,6 +203,7 @@ public static class S2PrototypeBootstrap
 
     private static bool ShouldBuildInScene(string sceneName)
     {
-        return sceneName == SceneName || sceneName == LegacyStartSceneName;
+        // Prototype stage: build in any opened scene so Play works from Unity's default Untitled scene too.
+        return true;
     }
 }
