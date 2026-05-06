@@ -11,13 +11,15 @@ public static class S2PrototypeBootstrap
     private const string LegacyStartSceneName = "SampleScene";
     private const string RootName = "__S2_RomanColumns_Prototype";
     private const float GroundTopY = -1.8f;
-    private const float MapLeftX = -24f;
-    private const float MapRightX = 48f;
+    private const float MapLeftX = 0f;
+    private const float MapRightX = 60f;
     private const float CameraY = 0.1f;
     private const float CameraOrthoSize = 3.6f;
     private const float CameraAspect = 16f / 9f;
     private const float PlayerPixelsPerUnit = 128f;
     private const float PlayerScale = 0.5f;
+    private const float BackgroundHeight = 9f;
+    private const float BackgroundCenterY = 0.1f;
 
 #if UNITY_EDITOR
     [MenuItem("GameJam/Build S2 Prototype Preview")]
@@ -80,69 +82,139 @@ public static class S2PrototypeBootstrap
     {
         var mapWidth = MapRightX - MapLeftX;
         var mapCenterX = (MapLeftX + MapRightX) * 0.5f;
-        CreateBox(parent, "sky fallback", new Vector2(mapCenterX, 0.9f), new Vector2(mapWidth + 6f, 7f), new Color(0.66f, 0.79f, 0.92f), -30, false);
-        CreateSpriteHeight(parent, "S2 blue temple background", "Assets/Art/Environment/RomanColumns/roman_columns_solid_blue_background.png", new Vector2(mapCenterX, -0.25f), 7f, -20);
+        CreateBox(parent, "sky fallback", new Vector2(mapCenterX, BackgroundCenterY), new Vector2(mapWidth + 6f, BackgroundHeight), new Color(0.66f, 0.79f, 0.92f), -30, false);
+        TileBackgroundArt(parent, "S2 blue temple background", "Assets/Art/Environment/RomanColumns/roman_columns_solid_blue_background.png", MapLeftX - 3f, MapRightX + 3f, BackgroundCenterY, BackgroundHeight);
+    }
+
+    private static void TileBackgroundArt(Transform parent, string name, string path, float startX, float endX, float centerY, float height)
+    {
+        var sprite = LoadSprite(path);
+        if (sprite == null || sprite.bounds.size.x <= 0f || sprite.bounds.size.y <= 0f)
+        {
+            return;
+        }
+
+        var scale = height / sprite.bounds.size.y;
+        var tileWidth = sprite.bounds.size.x * scale;
+        if (tileWidth <= 0f)
+        {
+            return;
+        }
+
+        var cursor = startX;
+        var index = 0;
+        while (cursor < endX - 0.01f)
+        {
+            var center = cursor + tileWidth * 0.5f;
+            CreateSpriteHeightCentered(parent, name + "_" + index, path, new Vector2(center, centerY), height, -20);
+            cursor += tileWidth;
+            index++;
+        }
+    }
+
+    private static void CreateSpriteHeightCentered(Transform parent, string name, string path, Vector2 center, float height, int sortingOrder)
+    {
+        var sprite = LoadSprite(path);
+        if (sprite == null || sprite.bounds.size.y <= 0f)
+        {
+            return;
+        }
+
+        var obj = new GameObject(name);
+        obj.transform.SetParent(parent);
+        var scale = height / sprite.bounds.size.y;
+        obj.transform.localScale = new Vector3(scale, scale, 1f);
+        obj.transform.position = new Vector3(center.x, center.y, 0f);
+        var renderer = obj.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.sortingOrder = sortingOrder;
     }
 
     private static void CreateLevel(Transform parent)
     {
-        var pitCenterX = -5f;
+        var pit1CenterX = 19f;
+        var pit2CenterX = 45f;
         var pitHalfWidth = 1.2f;
-        var leftFloorStart = MapLeftX;
-        var leftFloorEnd = pitCenterX - pitHalfWidth;
-        var rightFloorStart = pitCenterX + pitHalfWidth;
-        var rightFloorEnd = MapRightX;
-        var leftFloorWidth = leftFloorEnd - leftFloorStart;
-        var rightFloorWidth = rightFloorEnd - rightFloorStart;
+        var floorALeft = MapLeftX;
+        var floorARight = pit1CenterX - pitHalfWidth;
+        var floorBLeft = pit1CenterX + pitHalfWidth;
+        var floorBRight = pit2CenterX - pitHalfWidth;
+        var floorCLeft = pit2CenterX + pitHalfWidth;
+        var floorCRight = MapRightX;
 
-        CreateBoxTop(parent, "floor left", new Vector2(leftFloorStart + leftFloorWidth * 0.5f, GroundTopY), new Vector2(leftFloorWidth, 0.6f), new Color(0.08f, 0.09f, 0.1f), -3, true);
-        CreateBoxTop(parent, "floor right", new Vector2(rightFloorStart + rightFloorWidth * 0.5f, GroundTopY), new Vector2(rightFloorWidth, 0.6f), new Color(0.08f, 0.09f, 0.1f), -3, true);
-        CreateBoxTop(parent, "pit bottom collider", new Vector2(pitCenterX, GroundTopY - 1.25f), new Vector2(pitHalfWidth * 2f, 0.35f), new Color(0.18f, 0.19f, 0.2f), -3, true);
-        CreateBoxTop(parent, "left wall", new Vector2(MapLeftX - 0.5f, GroundTopY + 4f), new Vector2(1f, 10f), new Color(0.08f, 0.09f, 0.1f, 0f), -3, true);
-        CreateBoxTop(parent, "right wall", new Vector2(MapRightX + 0.5f, GroundTopY + 4f), new Vector2(1f, 10f), new Color(0.08f, 0.09f, 0.1f, 0f), -3, true);
+        AddFloorSegment(parent, "floor A", "Assets/Art/Environment/RomanColumns/roman_columns_ground.png", floorALeft, floorARight);
+        AddFloorSegment(parent, "floor B", "Assets/Art/Environment/RomanColumns/roman_columns_ground_grass.png", floorBLeft, floorBRight);
+        AddFloorSegment(parent, "floor C", "Assets/Art/Environment/RomanColumns/roman_columns_ground_grass.png", floorCLeft, floorCRight);
 
-        TileGroundArt(parent, "left ground art", "Assets/Art/Environment/RomanColumns/roman_columns_ground.png", leftFloorStart, leftFloorEnd, 2.5f);
-        TileGroundArt(parent, "right ground art", "Assets/Art/Environment/RomanColumns/roman_columns_ground_grass.png", rightFloorStart, rightFloorEnd, 2.5f);
-        CreateSpriteHeight(parent, "pit art", "Assets/Art/Environment/RomanColumns/roman_columns_pit.png", new Vector2(pitCenterX, GroundTopY - 0.02f), 2.15f, -1);
-        CreateSpriteHeight(parent, "pit floor art", "Assets/Art/Environment/RomanColumns/roman_columns_pit_floor.png", new Vector2(pitCenterX, GroundTopY - 1.25f), 1.3f, -1);
+        AddPit(parent, "pit 1", pit1CenterX, pitHalfWidth);
+        AddPit(parent, "pit 2", pit2CenterX, pitHalfWidth);
 
-        // Entry: arch + intro columns, before the pit.
-        AddColumn(parent, -18.5f, "roman_columns_arch.png", 2.1f);
-        AddColumn(parent, -13.2f, "roman_column_01.png", 2.0f);
-        AddColumn(parent, -8.6f, "roman_column_thin.png", 1.9f);
-        AddTree(parent, -1.6f, 2.6f);
+        CreateBoxTop(parent, "left wall", new Vector2(MapLeftX - 0.5f, GroundTopY + 4f), new Vector2(1f, 10f), new Color(0f, 0f, 0f, 0f), -3, true);
+        CreateBoxTop(parent, "right wall", new Vector2(MapRightX + 0.5f, GroundTopY + 4f), new Vector2(1f, 10f), new Color(0f, 0f, 0f, 0f), -3, true);
 
-        // Middle act: transition arch, a run of mixed columns, a tree break.
-        AddColumn(parent, 3.4f, "roman_columns_arch.png", 2.0f);
-        AddColumn(parent, 8.6f, "roman_column_02.png", 2.2f);
-        AddColumn(parent, 13.2f, "roman_column_broken.png", 1.6f);
-        AddColumn(parent, 17.6f, "roman_column_01.png", 2.0f);
-        AddTree(parent, 22.4f, 2.5f);
+        // Act 1 (0-12m): tutorial - arch entry, pushable stone, first columns.
+        AddColumn(parent, 1.5f, "roman_columns_arch.png", 2.2f);
+        AddColumn(parent, 5.5f, "roman_column_01.png", 1.6f);
+        AddColumn(parent, 10.0f, "roman_column_01.png", 1.6f);
 
-        // Final act: recurring arches/columns leading to the exit on the right.
-        AddColumn(parent, 27.0f, "roman_columns_arch.png", 1.9f);
-        AddColumn(parent, 31.4f, "roman_column_thin.png", 2.1f);
-        AddColumn(parent, 35.6f, "roman_column_02.png", 2.0f);
-        AddTree(parent, 40.0f, 2.4f);
-        AddColumn(parent, 44.2f, "roman_columns_arch.png", 2.2f);
+        // Act 2 (12-20m): climbable tree leading toward the first pit.
+        AddTree(parent, 13.0f, 3.2f);
+        AddColumn(parent, 17.0f, "roman_column_thin.png", 1.9f);
 
-        CreateBox(parent, "pushable stone preview", new Vector2(-14.7f, GroundTopY + 0.43f), new Vector2(0.75f, 0.75f), new Color(0.95f, 0.68f, 0.72f, 0.75f), 4, true);
-        CreateSpriteHeight(parent, "stone art", "Assets/Art/Environment/RomanColumns/roman_columns_rolling_stone_animated.png", new Vector2(-14.7f, GroundTopY), 0.75f, 5);
+        // Act 3 (20-30m): transition arch + mixed columns after the pit.
+        AddColumn(parent, 20.5f, "roman_columns_arch.png", 2.0f);
+        AddColumn(parent, 23.5f, "roman_column_01.png", 1.6f);
+        AddColumn(parent, 28.0f, "roman_columns_arch.png", 2.6f);
 
-        CreateLight(parent, -16.5f, GroundTopY + 1.6f);
-        CreateLight(parent, -10.8f, GroundTopY + 1.5f);
-        CreateLight(parent, -4.9f, GroundTopY - 0.35f);
-        CreateLight(parent, -1.4f, GroundTopY + 2.9f);
-        CreateLight(parent, 5.6f, GroundTopY + 1.8f);
-        CreateLight(parent, 11.0f, GroundTopY + 1.5f);
-        CreateLight(parent, 15.4f, GroundTopY + 1.7f);
-        CreateLight(parent, 20.0f, GroundTopY + 1.9f);
-        CreateLight(parent, 24.8f, GroundTopY + 2.8f);
-        CreateLight(parent, 29.2f, GroundTopY + 1.8f);
-        CreateLight(parent, 33.6f, GroundTopY + 1.6f);
-        CreateLight(parent, 38.0f, GroundTopY + 1.9f);
-        CreateLight(parent, 42.2f, GroundTopY + 2.7f);
-        CreateLight(parent, 46.4f, GroundTopY + 2.0f);
+        // Act 4 (30-45m): gauntlet of columns, second tree break, lead into pit 2.
+        AddColumn(parent, 32.0f, "roman_column_01.png", 1.6f);
+        AddColumn(parent, 36.0f, "roman_column_02.png", 1.9f);
+        AddColumn(parent, 39.0f, "roman_columns_arch.png", 2.0f);
+        AddColumn(parent, 43.0f, "roman_column_01.png", 1.6f);
+
+        // Act 5 (46-60m): final stretch - broken column + thin column + exit.
+        AddColumn(parent, 48.0f, "roman_column_broken.png", 1.6f);
+        AddColumn(parent, 52.0f, "roman_column_thin.png", 2.1f);
+        AddColumn(parent, 57.0f, "roman_column_02.png", 1.9f);
+
+        // Pushable stone in Act 1 entry zone.
+        CreateBox(parent, "pushable stone preview", new Vector2(3.5f, GroundTopY + 0.43f), new Vector2(0.75f, 0.75f), new Color(0.95f, 0.68f, 0.72f, 0.75f), 4, true);
+        CreateSpriteHeight(parent, "stone art", "Assets/Art/Environment/RomanColumns/roman_columns_rolling_stone_animated.png", new Vector2(3.5f, GroundTopY), 0.75f, 5);
+
+        // Light orbs follow the forward path, lifting over obstacles.
+        CreateLight(parent, 2.5f, GroundTopY + 1.8f);
+        CreateLight(parent, 7.5f, GroundTopY + 1.5f);
+        CreateLight(parent, 12.0f, GroundTopY + 1.8f);
+        CreateLight(parent, 16.0f, GroundTopY + 1.6f);
+        CreateLight(parent, 19.0f, GroundTopY - 0.35f);
+        CreateLight(parent, 22.0f, GroundTopY + 2.5f);
+        CreateLight(parent, 26.0f, GroundTopY + 1.8f);
+        CreateLight(parent, 30.0f, GroundTopY + 2.9f);
+        CreateLight(parent, 34.0f, GroundTopY + 1.5f);
+        CreateLight(parent, 38.0f, GroundTopY + 1.8f);
+        CreateLight(parent, 42.0f, GroundTopY + 1.6f);
+        CreateLight(parent, 45.0f, GroundTopY - 0.35f);
+        CreateLight(parent, 50.0f, GroundTopY + 1.7f);
+        CreateLight(parent, 54.0f, GroundTopY + 2.5f);
+        CreateLight(parent, 58.5f, GroundTopY + 1.8f);
+    }
+
+    private static void AddFloorSegment(Transform parent, string name, string artPath, float startX, float endX)
+    {
+        var width = endX - startX;
+        if (width <= 0f)
+        {
+            return;
+        }
+        CreateBoxTop(parent, name + " collider", new Vector2(startX + width * 0.5f, GroundTopY), new Vector2(width, 0.6f), new Color(0f, 0f, 0f, 0f), -3, true);
+        TileGroundArt(parent, name + " art", artPath, startX, endX, 2.5f);
+    }
+
+    private static void AddPit(Transform parent, string name, float centerX, float halfWidth)
+    {
+        CreateBoxTop(parent, name + " bottom collider", new Vector2(centerX, GroundTopY - 1.25f), new Vector2(halfWidth * 2f, 0.35f), new Color(0f, 0f, 0f, 0f), -3, true);
+        CreateSpriteHeight(parent, name + " art", "Assets/Art/Environment/RomanColumns/roman_columns_pit.png", new Vector2(centerX, GroundTopY - 0.02f), 2.15f, -1);
+        CreateSpriteHeight(parent, name + " floor art", "Assets/Art/Environment/RomanColumns/roman_columns_pit_floor.png", new Vector2(centerX, GroundTopY - 1.25f), 1.3f, -1);
     }
 
     private static void TileGroundArt(Transform parent, string name, string path, float startX, float endX, float height)

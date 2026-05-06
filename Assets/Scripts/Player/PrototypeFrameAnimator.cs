@@ -21,6 +21,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     [SerializeField] private float jumpFps = 12f;
     [SerializeField] private float landFps = 12f;
     [SerializeField] private float turnFps = 18f;
+    [SerializeField] private float idleFirstFrameHoldSeconds = 0.4f;
     [SerializeField] private float pixelsPerUnit = 128f;
 
     private Sprite[] idleFrames;
@@ -86,6 +87,10 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
         timer += Time.deltaTime;
         var frameTime = 1f / Mathf.Max(1f, GetFps());
+        if (currentState == MotionState.Idle && frameIndex == 0)
+        {
+            frameTime += Mathf.Max(0f, idleFirstFrameHoldSeconds);
+        }
         if (timer < frameTime)
         {
             return;
