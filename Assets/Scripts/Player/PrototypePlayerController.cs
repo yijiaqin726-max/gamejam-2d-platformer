@@ -15,6 +15,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
     private PrototypeFrameAnimator frameAnimator;
+    private bool wasGrounded;
+    private bool isLanding;
 
     private void Awake()
     {
@@ -22,24 +24,50 @@ public sealed class PrototypePlayerController : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         frameAnimator = GetComponent<PrototypeFrameAnimator>();
         body.freezeRotation = true;
+        wasGrounded = true;
     }
 
     private void Update()
     {
+        var grounded = IsGrounded();
+
+        if (!wasGrounded && grounded && frameAnimator != null)
+        {
+            isLanding = true;
+            frameAnimator.SetState(PrototypeFrameAnimator.MotionState.Land, true);
+        }
+
+        if (isLanding)
+        {
+            var velocity = body.linearVelocity;
+            velocity.x = 0f;
+            body.linearVelocity = velocity;
+
+            if (frameAnimator == null || frameAnimator.IsLandingComplete)
+            {
+                isLanding = false;
+            }
+            else
+            {
+                wasGrounded = grounded;
+                return;
+            }
+        }
+
         var horizontal = GetHorizontalInput();
-        var velocity = body.linearVelocity;
-        velocity.x = horizontal * moveSpeed;
-        body.linearVelocity = velocity;
+        var moveVelocity = body.linearVelocity;
+        moveVelocity.x = horizontal * moveSpeed;
+        body.linearVelocity = moveVelocity;
 
         if (Mathf.Abs(horizontal) > 0.01f)
         {
             spriteRenderer.flipX = horizontal < 0f;
         }
 
-        var grounded = IsGrounded();
         if (WasJumpPressed() && grounded)
         {
             body.linearVelocity = new Vector2(body.linearVelocity.x, jumpVelocity);
+            grounded = false;
         }
 
         if (!grounded)
@@ -54,6 +82,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
         {
             frameAnimator?.SetState(PrototypeFrameAnimator.MotionState.Idle);
         }
+
+        wasGrounded = grounded;
     }
 
     private bool IsGrounded()

@@ -10,27 +10,36 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     {
         Idle,
         Run,
-        Jump
+        Jump,
+        Land
     }
 
     [SerializeField] private SpriteRenderer targetRenderer;
     [SerializeField] private float idleFps = 6f;
     [SerializeField] private float runFps = 16f;
     [SerializeField] private float jumpFps = 12f;
+    [SerializeField] private float landFps = 12f;
+    [SerializeField] private float pixelsPerUnit = 128f;
 
     private Sprite[] idleFrames;
     private Sprite[] runFrames;
     private Sprite[] jumpFrames;
+    private Sprite[] landFrames;
     private MotionState currentState;
     private float timer;
     private int frameIndex;
+    private bool landingComplete;
 
-    public void Configure(string[] idlePaths, string[] runPaths, string[] jumpPaths)
+    public bool IsLandingComplete => landingComplete;
+
+    public void Configure(string[] idlePaths, string[] runPaths, string[] jumpPaths, string[] landPaths, float spritePixelsPerUnit = 128f)
     {
         targetRenderer = targetRenderer != null ? targetRenderer : GetComponent<SpriteRenderer>();
-        idleFrames = LoadSprites(idlePaths);
-        runFrames = LoadSprites(runPaths);
-        jumpFrames = LoadSprites(jumpPaths);
+        pixelsPerUnit = spritePixelsPerUnit;
+        idleFrames = LoadSprites(idlePaths, pixelsPerUnit);
+        runFrames = LoadSprites(runPaths, pixelsPerUnit);
+        jumpFrames = LoadSprites(jumpPaths, pixelsPerUnit);
+        landFrames = LoadSprites(landPaths ?? System.Array.Empty<string>(), pixelsPerUnit);
         SetState(MotionState.Idle, true);
     }
 
@@ -44,6 +53,10 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         currentState = state;
         timer = 0f;
         frameIndex = 0;
+        if (state == MotionState.Land)
+        {
+            landingComplete = false;
+        }
         ApplyFrame();
     }
 
@@ -68,7 +81,21 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         }
 
         timer -= frameTime;
-        frameIndex = (frameIndex + 1) % frames.Length;
+
+        if (currentState == MotionState.Land)
+        {
+            if (frameIndex >= frames.Length - 1)
+            {
+                landingComplete = true;
+                return;
+            }
+            frameIndex++;
+        }
+        else
+        {
+            frameIndex = (frameIndex + 1) % frames.Length;
+        }
+
         ApplyFrame();
     }
 
@@ -87,6 +114,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         {
             MotionState.Run => runFrames ?? System.Array.Empty<Sprite>(),
             MotionState.Jump => jumpFrames ?? System.Array.Empty<Sprite>(),
+            MotionState.Land => (landFrames != null && landFrames.Length > 0) ? landFrames : (idleFrames ?? System.Array.Empty<Sprite>()),
             _ => idleFrames ?? System.Array.Empty<Sprite>()
         };
     }
@@ -97,22 +125,23 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         {
             MotionState.Run => runFps,
             MotionState.Jump => jumpFps,
+            MotionState.Land => landFps,
             _ => idleFps
         };
     }
 
-    private static Sprite[] LoadSprites(string[] paths)
+    private static Sprite[] LoadSprites(string[] paths, float pixelsPerUnit)
     {
         var sprites = new Sprite[paths.Length];
         for (var i = 0; i < paths.Length; i++)
         {
-            sprites[i] = LoadSprite(paths[i]);
+            sprites[i] = LoadSprite(paths[i], pixelsPerUnit);
         }
 
         return System.Array.FindAll(sprites, sprite => sprite != null);
     }
 
-    private static Sprite LoadSprite(string path)
+    private static Sprite LoadSprite(string path, float pixelsPerUnit)
     {
 #if UNITY_EDITOR
         var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
@@ -128,7 +157,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         }
 
         return texture != null
-            ? Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 512f)
+            ? Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), pixelsPerUnit)
             : null;
 #else
         return null;

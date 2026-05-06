@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv 9.PNG player_jump_09.png)",
+      "Bash(mv 9.PNG.meta player_jump_09.png.meta)",
+      "Bash(mv 10.PNG player_jump_10.png)",
+      "Bash(mv 10.PNG.meta player_jump_10.png.meta)"
+    ]
+  }
+}
