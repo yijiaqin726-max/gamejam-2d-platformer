@@ -17,6 +17,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private PrototypeFrameAnimator frameAnimator;
     private bool wasGrounded;
     private bool isLanding;
+    private bool isTurning;
+    private int facingDirection = 1;
 
     private void Awake()
     {
@@ -34,6 +36,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
         if (!wasGrounded && grounded && frameAnimator != null)
         {
             isLanding = true;
+            isTurning = false;
             frameAnimator.SetState(PrototypeFrameAnimator.MotionState.Land, true);
         }
 
@@ -55,13 +58,46 @@ public sealed class PrototypePlayerController : MonoBehaviour
         }
 
         var horizontal = GetHorizontalInput();
+
+        if (!isTurning
+            && grounded
+            && frameAnimator != null
+            && frameAnimator.HasTurnFrames
+            && Mathf.Abs(horizontal) > 0.01f
+            && (int)Mathf.Sign(horizontal) != facingDirection
+            && Mathf.Abs(body.linearVelocity.x) > 0.1f)
+        {
+            isTurning = true;
+            frameAnimator.SetState(PrototypeFrameAnimator.MotionState.Turn, true);
+        }
+
+        if (isTurning)
+        {
+            var v = body.linearVelocity;
+            v.x = 0f;
+            body.linearVelocity = v;
+
+            if (frameAnimator == null || frameAnimator.IsTurnComplete)
+            {
+                facingDirection = -facingDirection;
+                spriteRenderer.flipX = facingDirection < 0;
+                isTurning = false;
+            }
+            else
+            {
+                wasGrounded = grounded;
+                return;
+            }
+        }
+
         var moveVelocity = body.linearVelocity;
         moveVelocity.x = horizontal * moveSpeed;
         body.linearVelocity = moveVelocity;
 
         if (Mathf.Abs(horizontal) > 0.01f)
         {
-            spriteRenderer.flipX = horizontal < 0f;
+            facingDirection = horizontal < 0f ? -1 : 1;
+            spriteRenderer.flipX = facingDirection < 0;
         }
 
         if (WasJumpPressed() && grounded)

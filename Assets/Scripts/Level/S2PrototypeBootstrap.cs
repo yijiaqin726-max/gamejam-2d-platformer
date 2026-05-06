@@ -233,6 +233,14 @@ public static class S2PrototypeBootstrap
                 "Assets/Animations/Player/Jump/Frames/player_jump_09.png",
                 "Assets/Animations/Player/Jump/Frames/player_jump_10.png"
             },
+            new[]
+            {
+                "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_01.png",
+                "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_02.png",
+                "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_03.png",
+                "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_04.png",
+                "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_05.png"
+            },
             PlayerPixelsPerUnit);
         player.AddComponent<PrototypePlayerController>();
         return player.transform;

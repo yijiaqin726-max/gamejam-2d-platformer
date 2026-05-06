@@ -11,7 +11,8 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         Idle,
         Run,
         Jump,
-        Land
+        Land,
+        Turn
     }
 
     [SerializeField] private SpriteRenderer targetRenderer;
@@ -19,20 +20,25 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     [SerializeField] private float runFps = 16f;
     [SerializeField] private float jumpFps = 12f;
     [SerializeField] private float landFps = 12f;
+    [SerializeField] private float turnFps = 18f;
     [SerializeField] private float pixelsPerUnit = 128f;
 
     private Sprite[] idleFrames;
     private Sprite[] runFrames;
     private Sprite[] jumpFrames;
     private Sprite[] landFrames;
+    private Sprite[] turnFrames;
     private MotionState currentState;
     private float timer;
     private int frameIndex;
     private bool landingComplete;
+    private bool turnComplete;
 
     public bool IsLandingComplete => landingComplete;
+    public bool IsTurnComplete => turnComplete;
+    public bool HasTurnFrames => turnFrames != null && turnFrames.Length > 0;
 
-    public void Configure(string[] idlePaths, string[] runPaths, string[] jumpPaths, string[] landPaths, float spritePixelsPerUnit = 128f)
+    public void Configure(string[] idlePaths, string[] runPaths, string[] jumpPaths, string[] landPaths, string[] turnPaths, float spritePixelsPerUnit = 128f)
     {
         targetRenderer = targetRenderer != null ? targetRenderer : GetComponent<SpriteRenderer>();
         pixelsPerUnit = spritePixelsPerUnit;
@@ -40,6 +46,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         runFrames = LoadSprites(runPaths, pixelsPerUnit);
         jumpFrames = LoadSprites(jumpPaths, pixelsPerUnit);
         landFrames = LoadSprites(landPaths ?? System.Array.Empty<string>(), pixelsPerUnit);
+        turnFrames = LoadSprites(turnPaths ?? System.Array.Empty<string>(), pixelsPerUnit);
         SetState(MotionState.Idle, true);
     }
 
@@ -56,6 +63,10 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         if (state == MotionState.Land)
         {
             landingComplete = false;
+        }
+        if (state == MotionState.Turn)
+        {
+            turnComplete = false;
         }
         ApplyFrame();
     }
@@ -91,6 +102,15 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
             }
             frameIndex++;
         }
+        else if (currentState == MotionState.Turn)
+        {
+            if (frameIndex >= frames.Length - 1)
+            {
+                turnComplete = true;
+                return;
+            }
+            frameIndex++;
+        }
         else
         {
             frameIndex = (frameIndex + 1) % frames.Length;
@@ -115,6 +135,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
             MotionState.Run => runFrames ?? System.Array.Empty<Sprite>(),
             MotionState.Jump => jumpFrames ?? System.Array.Empty<Sprite>(),
             MotionState.Land => (landFrames != null && landFrames.Length > 0) ? landFrames : (idleFrames ?? System.Array.Empty<Sprite>()),
+            MotionState.Turn => (turnFrames != null && turnFrames.Length > 0) ? turnFrames : (runFrames ?? System.Array.Empty<Sprite>()),
             _ => idleFrames ?? System.Array.Empty<Sprite>()
         };
     }
@@ -126,6 +147,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
             MotionState.Run => runFps,
             MotionState.Jump => jumpFps,
             MotionState.Land => landFps,
+            MotionState.Turn => turnFps,
             _ => idleFps
         };
     }
