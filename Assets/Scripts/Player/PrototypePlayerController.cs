@@ -10,6 +10,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float jumpVelocity = 8f;
+    [SerializeField] private float doubleJumpHeight = 3.25f;
     [SerializeField] private LayerMask groundMask = ~0;
 
     private Rigidbody2D body;
@@ -19,6 +20,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private bool isLanding;
     private bool isTurning;
     private int facingDirection = 1;
+    private int remainingAirJumps;
 
     private void Awake()
     {
@@ -27,11 +29,16 @@ public sealed class PrototypePlayerController : MonoBehaviour
         frameAnimator = GetComponent<PrototypeFrameAnimator>();
         body.freezeRotation = true;
         wasGrounded = true;
+        remainingAirJumps = 1;
     }
 
     private void Update()
     {
         var grounded = IsGrounded();
+        if (grounded && body.linearVelocity.y <= 0.01f)
+        {
+            remainingAirJumps = 1;
+        }
 
         if (!wasGrounded && grounded && frameAnimator != null)
         {
@@ -100,9 +107,16 @@ public sealed class PrototypePlayerController : MonoBehaviour
             spriteRenderer.flipX = facingDirection < 0;
         }
 
-        if (WasJumpPressed() && grounded)
+        var jumpPressed = WasJumpPressed();
+        if (jumpPressed && grounded)
         {
             body.linearVelocity = new Vector2(body.linearVelocity.x, jumpVelocity);
+            grounded = false;
+        }
+        else if (jumpPressed && !grounded && remainingAirJumps > 0)
+        {
+            body.linearVelocity = new Vector2(body.linearVelocity.x, CalculateJumpVelocity(doubleJumpHeight));
+            remainingAirJumps--;
             grounded = false;
         }
 
@@ -124,8 +138,19 @@ public sealed class PrototypePlayerController : MonoBehaviour
 
     private bool IsGrounded()
     {
+        if (body != null && body.linearVelocity.y > 0.05f)
+        {
+            return false;
+        }
+
         var origin = (Vector2)transform.position + Vector2.down * 0.15f;
         return Physics2D.Raycast(origin, Vector2.down, 0.55f, groundMask);
+    }
+
+    private float CalculateJumpVelocity(float jumpHeight)
+    {
+        var gravity = Mathf.Abs(Physics2D.gravity.y * body.gravityScale);
+        return Mathf.Sqrt(2f * gravity * jumpHeight);
     }
 
     private static float GetHorizontalInput()
