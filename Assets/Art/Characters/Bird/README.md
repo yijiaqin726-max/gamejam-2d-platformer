@@ -1,0 +1,1 @@
+鸟的序列帧，可以在粒子特效的在texture sheet animatior里调3*3
