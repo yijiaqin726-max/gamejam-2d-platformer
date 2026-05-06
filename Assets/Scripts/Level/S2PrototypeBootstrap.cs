@@ -8,6 +8,7 @@ using UnityEditor;
 public static class S2PrototypeBootstrap
 {
     private const string SceneName = "S2_RomanColumns";
+    private const string LegacyStartSceneName = "SampleScene";
     private const string RootName = "__S2_RomanColumns_Prototype";
 
 #if UNITY_EDITOR
@@ -21,7 +22,7 @@ public static class S2PrototypeBootstrap
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void BuildOnPlay()
     {
-        if (SceneManager.GetActiveScene().name == SceneName)
+        if (ShouldBuildInScene(SceneManager.GetActiveScene().name))
         {
             Build();
         }
@@ -198,5 +199,10 @@ public static class S2PrototypeBootstrap
 #else
         return null;
 #endif
+    }
+
+    private static bool ShouldBuildInScene(string sceneName)
+    {
+        return sceneName == SceneName || sceneName == LegacyStartSceneName;
     }
 }
