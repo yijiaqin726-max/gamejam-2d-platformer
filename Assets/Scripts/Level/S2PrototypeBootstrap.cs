@@ -37,8 +37,11 @@ public static class S2PrototypeBootstrap
     private const float MainTreeLeafBottomHeight = MainTreeHeight * TreeLeafBottomRatio;
     private const float FullColumnHeight = MainTreeHeight * (2f / 3f);
     private const float BrokenColumnHeight = FullColumnHeight * 0.86f;
-    private const float BrokenColumnColliderWidthRatio = 0.5f;
-    private const float BrokenColumnColliderHeightRatio = 0.32f;
+    private const float ColumnWidth = 3.85f;
+    private const float ColumnHeight = 3.253333f;
+    private const float BrokenColumnColliderBottomWidthRatio = 0.375f;
+    private const float BrokenColumnColliderTopWidthRatio = 0.25f;
+    private const float BrokenColumnColliderTotalHeightRatio = 0.40f;
     private const float RockHeight = MainTreeLeafBottomHeight;
     private const int BehindPlayerGrassOrder = 8;
     private const int FrontPlayerGrassOrder = 24;
@@ -69,10 +72,13 @@ public static class S2PrototypeBootstrap
 
     public static void Build()
     {
-        if (GameObject.Find(RootName) != null)
+        var existing = GameObject.Find(RootName);
+        if (existing != null)
         {
-            return;
+            Object.Destroy(existing);
         }
+
+        columnIndexCounter = 0;
 
         var root = new GameObject(RootName);
         var cameraTransform = CreateCamera(root.transform);
@@ -210,23 +216,30 @@ public static class S2PrototypeBootstrap
         var midgroundProps = CreateGroup(parent, "MidgroundProps");
         var foreground = CreateGroup(parent, "Foreground");
         var lightOrbs = CreateGroup(parent, "LightOrbs");
-        var floorLeft = MapLeftX;
-        var floorRight = MapRightX;
 
-        // Ground is one continuous tiled SpriteRenderer using the real RomanColumns ground art.
-        // No gaps and no pure-color filler blocks are generated.
-        CreateTiledGroundArt(foreground, "continuous tiled ground sprite", "Assets/Art/Environment/RomanColumns/roman_columns_ground.png", floorLeft, floorRight, GroundArtHeight);
-        AddReferenceGrassClusters(foreground);
-        AddFloorCollider(parent, "continuous floor", floorLeft, floorRight);
-
+        // Create boundary walls
         CreateBoxTop(parent, "left wall", new Vector2(MapLeftX - 0.5f, GroundTopY + 4f), new Vector2(1f, 10f), new Color(0f, 0f, 0f, 0f), -3, true);
         CreateBoxTop(parent, "right wall", new Vector2(MapRightX + 0.5f, GroundTopY + 4f), new Vector2(1f, 10f), new Color(0f, 0f, 0f, 0f), -3, true);
 
-        AddReferenceSceneDressing(midgroundProps, foreground);
+        // Section 1: Teaching Area (X = -12 to 4)
+        AddSection1_TeachingArea(parent, midgroundProps, foreground);
 
-        AddStandableRock(parent, midgroundProps, 34.0f, RockHeight, 1.7f, "standable route rock");
+        // Section 2: Low Jump (X = 4 to 12)
+        AddSection2_LowJump(parent, midgroundProps, foreground);
 
-        // Light orbs follow the forward path, lifting over obstacles.
+        // Section 3: Push Stone + Pit (X = 12 to 20)
+        AddSection3_PushStone(parent, midgroundProps, foreground);
+
+        // Section 4: Raised Floor (X = 18 to 32)
+        AddSection4_RaisedFloor(parent, midgroundProps, foreground);
+
+        // Section 5: Column Platforms (X = 32 to 46)
+        AddSection5_ColumnPlatforms(parent, midgroundProps, foreground);
+
+        // Section 6: Temple (X = 46 to 60)
+        AddSection6_Temple(parent, midgroundProps, foreground);
+
+        // Light orbs
         CreateLight(lightOrbs, 2.5f, GroundTopY + 1.8f);
         CreateLight(lightOrbs, 7.5f, GroundTopY + 1.5f);
         CreateLight(lightOrbs, 12.0f, GroundTopY + 1.8f);
@@ -241,6 +254,21 @@ public static class S2PrototypeBootstrap
         CreateLight(lightOrbs, 58.5f, GroundTopY + 1.8f);
     }
 
+    private static readonly string[] ColumnVariants = {
+        "roman_column_01.png",
+        "roman_column_02.png",
+        "roman_column_thin.png"
+    };
+
+    private static int columnIndexCounter = 0;
+
+    private static string GetCycleColumnFileName()
+    {
+        var fileName = ColumnVariants[columnIndexCounter % ColumnVariants.Length];
+        columnIndexCounter++;
+        return fileName;
+    }
+
     private static void AddReferenceSceneDressing(Transform midground, Transform foreground)
     {
         AddGrassClump(foreground, 0.8f, BehindPlayerGrassOrder);
@@ -251,24 +279,28 @@ public static class S2PrototypeBootstrap
         AddGrassClump(foreground, 10.8f, BehindPlayerGrassOrder);
         AddGrassClump(foreground, 12.5f, FrontPlayerGrassOrder);
 
+        AddColumn(midground, 4.5f, FullColumnHeight);
+        AddBrokenColumnObstacle(midground, 8.0f);
+        AddColumn(midground, 11.5f, FullColumnHeight);
+
         AddStandableRock(midground, midground, 13.2f, RockHeight, 1.7f, "low approach rock");
-        AddColumn(midground, 18.0f, "roman_column_01.png", FullColumnHeight);
+        AddColumn(midground, 18.0f, FullColumnHeight);
         AddBrokenColumnObstacle(midground, 20.8f);
         AddGrassClump(foreground, 14.2f, BehindPlayerGrassOrder);
         AddGrassClump(foreground, 19.2f, FrontPlayerGrassOrder);
 
         AddGrassClump(foreground, 23.0f, BehindPlayerGrassOrder);
         AddStandableRock(midground, midground, 25.8f, RockHeight, 1.7f, "mid route standable rock");
-        AddColumn(midground, 30.8f, "roman_column_01.png", FullColumnHeight);
+        AddColumn(midground, 30.8f, FullColumnHeight);
         AddBrokenColumnObstacle(midground, 34.4f);
         AddGrassClump(foreground, 29.2f, FrontPlayerGrassOrder);
 
-        AddColumn(midground, 44.6f, "roman_column_01.png", FullColumnHeight);
+        AddColumn(midground, 44.6f, FullColumnHeight);
         AddBrokenColumnObstacle(midground, 49.0f);
         AddGrassClump(foreground, 39.0f, BehindPlayerGrassOrder);
         AddGrassClump(foreground, 44.8f, FrontPlayerGrassOrder);
 
-        CreateSpriteHeight(midground, "right ruin temple facade", "Assets/Art/Environment/RomanColumns/roman_columns_house.png", new Vector2(54.5f, GroundTopY), 4.6f, -15);
+        CreateSpriteHeight(midground, "right ruin temple facade", "Assets/Art/Environment/RomanColumns/roman_columns_house.png", new Vector2(54.5f, GroundTopY - GroundedPropSink), 4.6f, -15);
         AddStandableRock(midground, midground, 50.2f, RockHeight, 1.7f, "right approach standable rock");
         AddGrassClump(foreground, 51.8f, BehindPlayerGrassOrder);
         AddGrassClump(foreground, 57.5f, FrontPlayerGrassOrder);
@@ -324,10 +356,19 @@ public static class S2PrototypeBootstrap
         AddGrassClump(parent, 58.0f, BehindPlayerGrassOrder);
     }
 
-    private static void AddColumn(Transform parent, float x, string fileName, float height)
+    private static void AddColumn(Transform parent, float x, float height)
     {
-        CreateSpriteSize(parent, fileName, "Assets/Art/Environment/RomanColumns/" + fileName, new Vector2(x, GroundTopY - GroundedPropSink), new Vector2(ColumnTargetWidth, height), PillarSortingOrder);
+        var fileName = GetCycleColumnFileName();
+        CreateSpriteSize(parent, fileName, "Assets/Art/Environment/RomanColumns/" + fileName, new Vector2(x, GroundTopY - GroundedPropSink), new Vector2(ColumnWidth, ColumnHeight), PillarSortingOrder);
         AddTopPlatform(parent, fileName + " standable top", x, GroundTopY + height - 0.05f, ColumnTargetWidth * 0.72f);
+
+        var colliderObj = new GameObject(fileName + " solid collider");
+        colliderObj.transform.SetParent(parent);
+        colliderObj.transform.position = new Vector3(x, GroundTopY + height * 0.5f - GroundedPropSink, 0f);
+        var collider = colliderObj.AddComponent<BoxCollider2D>();
+        collider.size = new Vector2(ColumnWidth, ColumnHeight);
+
+        Debug.Log($"[Column] {fileName} at X={x}: sprite size=({ColumnWidth}, {ColumnHeight}), collider size=({ColumnWidth}, {ColumnHeight})");
     }
 
     private static void AddBrokenColumnObstacle(Transform parent, float x)
@@ -336,9 +377,20 @@ public static class S2PrototypeBootstrap
 
         var obj = new GameObject("roman_column_broken obstacle collider");
         obj.transform.SetParent(parent);
-        obj.transform.position = new Vector3(x, GroundTopY + BrokenColumnHeight * BrokenColumnColliderHeightRatio * 0.5f, 0f);
-        var box = obj.AddComponent<BoxCollider2D>();
-        box.size = new Vector2(ColumnTargetWidth * BrokenColumnColliderWidthRatio, BrokenColumnHeight * BrokenColumnColliderHeightRatio);
+        obj.transform.position = new Vector3(x, 0f, 0f);
+
+        var bottomHeight = BrokenColumnHeight * BrokenColumnColliderTotalHeightRatio * 0.6f;
+        var topHeight = BrokenColumnHeight * BrokenColumnColliderTotalHeightRatio * 0.4f;
+        var bottomY = GroundTopY + bottomHeight * 0.5f;
+        var topY = bottomY + bottomHeight * 0.5f + topHeight * 0.5f;
+
+        var bottom = obj.AddComponent<BoxCollider2D>();
+        bottom.offset = new Vector2(0f, bottomY);
+        bottom.size = new Vector2(ColumnTargetWidth * BrokenColumnColliderBottomWidthRatio, bottomHeight);
+
+        var top = obj.AddComponent<BoxCollider2D>();
+        top.offset = new Vector2(0f, topY);
+        top.size = new Vector2(ColumnTargetWidth * BrokenColumnColliderTopWidthRatio, topHeight);
     }
 
     private static void CreateTiledGroundArt(Transform parent, string name, string path, float startX, float endX, float height)
@@ -384,7 +436,15 @@ public static class S2PrototypeBootstrap
 
     private static void AddTree(Transform midground, Transform foreground, float x)
     {
-        CreateSpriteHeight(midground, "large blue tree canopy", "Assets/Art/Environment/RomanColumns/roman_columns_tree_leaves.png", new Vector2(x, GroundTopY + MainTreeHeight * TreeLeafCenterRatio + TreeLeafVerticalOffset), MainTreeHeight * TreeLeafHeightRatio, -19);
+        var canopySprite = LoadSprite("Assets/Art/Environment/RomanColumns/roman_columns_tree_leaves.png");
+        var canopyObj = new GameObject("large blue tree canopy");
+        canopyObj.transform.SetParent(midground);
+        canopyObj.transform.position = new Vector3(x, -0.38f, 0f);
+        canopyObj.transform.localScale = new Vector3(0.3122f, 0.3708f, 1f);
+        var canopyRenderer = canopyObj.AddComponent<SpriteRenderer>();
+        canopyRenderer.sprite = canopySprite;
+        canopyRenderer.sortingOrder = -19;
+
         CreateSpriteHeight(midground, "large blue tree trunk", "Assets/Art/Environment/RomanColumns/roman_columns_tree_brunk.png", new Vector2(x, GroundTopY - GroundedPropSink), MainTreeHeight, -18);
         AddGrassClump(foreground, x - 1.0f, BehindPlayerGrassOrder);
         AddGrassClump(foreground, x + 1.2f, FrontPlayerGrassOrder);
@@ -647,9 +707,192 @@ public static class S2PrototypeBootstrap
         renderer.sortingOrder = sortingOrder;
     }
 
+    private static void AddFloorSegment(Transform parent, string name, float leftX, float rightX, float topY)
+    {
+        var width = rightX - leftX;
+        var centerX = (leftX + rightX) * 0.5f;
+        var floorHeight = 0.25f;
+
+        CreateTiledGroundArt(parent, name + " visual", "Assets/Art/Environment/RomanColumns/roman_columns_ground.png", leftX, rightX, GroundArtHeight);
+
+        var colliderObj = new GameObject(name + " collider");
+        colliderObj.transform.SetParent(parent);
+        colliderObj.transform.position = new Vector3(centerX, topY - floorHeight * 0.5f, 0f);
+        var collider = colliderObj.AddComponent<BoxCollider2D>();
+        collider.size = new Vector2(width, floorHeight);
+
+        Debug.Log($"[Floor] {name}: X={leftX}-{rightX}, topY={topY}, width={width}, height={floorHeight}");
+    }
+
+    private static void AddSection1_TeachingArea(Transform parent, Transform midground, Transform foreground)
+    {
+        AddFloorSegment(parent, "section1_floor", MapLeftX, 4f, GroundTopY);
+
+        AddTree(midground, foreground, -4.2f);
+        AddGrassClump(foreground, -2f, BehindPlayerGrassOrder);
+        AddGrassClump(foreground, 0.5f, FrontPlayerGrassOrder);
+        AddGrassClump(foreground, 2.5f, BehindPlayerGrassOrder);
+
+        Debug.Log("[Section 1] Teaching Area: X=-12 to 4");
+    }
+
+    private static void AddSection2_LowJump(Transform parent, Transform midground, Transform foreground)
+    {
+        AddFloorSegment(parent, "section2_floor", 4f, 12f, GroundTopY);
+
+        AddStandableRock(midground, midground, 7f, RockHeight * 0.6f, 1.5f, "low jump rock");
+        AddGrassClump(foreground, 5f, BehindPlayerGrassOrder);
+        AddGrassClump(foreground, 9f, FrontPlayerGrassOrder);
+
+        Debug.Log("[Section 2] Low Jump: X=4 to 12");
+    }
+
+    private static void AddSection3_PushStone(Transform parent, Transform midground, Transform foreground)
+    {
+        const float pitTopY = GroundTopY;
+        const float pitBottomY = GroundTopY - 1.2f;
+        const float raisedFloorInitialY = GroundTopY - 1.2f;
+        const float raisedFloorTargetY = GroundTopY + 1.0f;
+
+        AddFloorSegment(parent, "section3_floor_left", 12f, 14f, pitTopY);
+
+        AddPushableStone(parent, 10.5f, pitTopY + 0.5f);
+        AddPit(parent, 14f, 18f, pitTopY, pitBottomY);
+
+        var raisedFloor = AddRaisableFloor(parent, "section3_raised_floor", 18f, 28f, raisedFloorInitialY, raisedFloorTargetY);
+        AddTriggerZone(parent, raisedFloor, 16.5f, pitTopY, 1.5f, 0.4f);
+
+        AddGrassClump(foreground, 12.5f, BehindPlayerGrassOrder);
+        AddGrassClump(foreground, 19f, FrontPlayerGrassOrder);
+
+        Debug.Log("[Section 3] Push Stone + Pit: X=12 to 20");
+    }
+
+    private static void AddSection4_RaisedFloor(Transform parent, Transform midground, Transform foreground)
+    {
+        const float raisedTopY = GroundTopY + 1.0f;
+
+        AddFloorSegment(parent, "section4_floor", 18f, 32f, raisedTopY);
+
+        AddGrassClump(foreground, 20f, BehindPlayerGrassOrder);
+        AddGrassClump(foreground, 24f, FrontPlayerGrassOrder);
+        AddGrassClump(foreground, 28f, BehindPlayerGrassOrder);
+
+        Debug.Log($"[Section 4] Raised Floor: X=18 to 32, topY={raisedTopY}");
+    }
+
+    private static void AddSection5_ColumnPlatforms(Transform parent, Transform midground, Transform foreground)
+    {
+        AddFloorSegment(parent, "section5_floor", 32f, 46f, GroundTopY);
+
+        AddCompleteColumnPlatform(parent, 36f, 2.2f);
+        AddCompleteColumnPlatform(parent, 40f, 2.5f);
+        AddCompleteColumnPlatform(parent, 44f, 2.0f);
+
+        AddGrassClump(foreground, 34f, BehindPlayerGrassOrder);
+        AddGrassClump(foreground, 38f, FrontPlayerGrassOrder);
+        AddGrassClump(foreground, 42f, BehindPlayerGrassOrder);
+
+        Debug.Log("[Section 5] Column Platforms: X=32 to 46");
+    }
+
+    private static void AddSection6_Temple(Transform parent, Transform midground, Transform foreground)
+    {
+        AddFloorSegment(parent, "section6_floor", 46f, 60f, GroundTopY);
+
+        CreateSpriteHeight(midground, "temple arch", "Assets/Art/Environment/RomanColumns/roman_columns_arch.png", new Vector2(50f, GroundTopY - GroundedPropSink), 2.5f, -15);
+        CreateSpriteHeight(midground, "temple house", "Assets/Art/Environment/RomanColumns/roman_columns_house.png", new Vector2(54.5f, GroundTopY - GroundedPropSink), 4.6f, -15);
+
+        AddGrassClump(foreground, 48f, BehindPlayerGrassOrder);
+        AddGrassClump(foreground, 52f, FrontPlayerGrassOrder);
+        AddGrassClump(foreground, 56f, BehindPlayerGrassOrder);
+
+        Debug.Log($"[Section 6] Temple: arch at Y={GroundTopY - GroundedPropSink}");
+    }
+
+    private static void AddPushableStone(Transform parent, float x, float topY)
+    {
+        var stoneObj = new GameObject("pushable_stone");
+        stoneObj.transform.SetParent(parent);
+        stoneObj.transform.position = new Vector3(x, topY + 0.5f, 0f);
+
+        var renderer = stoneObj.AddComponent<SpriteRenderer>();
+        renderer.sprite = LoadSprite("Assets/Art/Environment/RomanColumns/roman_columns_rolling_stone_animated.png");
+        renderer.sortingOrder = 25;
+
+        var collider = stoneObj.AddComponent<CircleCollider2D>();
+        collider.radius = 0.4f;
+
+        stoneObj.AddComponent<PushableStone2D>();
+
+        Debug.Log($"[Stone] pushable_stone at X={x}, Y={topY + 0.5f}, radius=0.4");
+    }
+
+    private static void AddPit(Transform parent, float leftX, float rightX, float pitTopY, float pitBottomY)
+    {
+        var pitHeight = pitTopY - pitBottomY;
+
+        CreateTiledGroundArt(parent, "pit_visual", "Assets/Art/Environment/RomanColumns/roman_columns_pit.png", leftX, rightX, pitHeight);
+
+        Debug.Log($"[Pit] X={leftX}-{rightX}, topY={pitTopY}, bottomY={pitBottomY}, height={pitHeight}");
+    }
+
+    private static void AddCompleteColumnPlatform(Transform parent, float x, float height)
+    {
+        var fileName = GetCycleColumnFileName();
+
+        CreateSpriteSize(parent, fileName, "Assets/Art/Environment/RomanColumns/" + fileName, new Vector2(x, GroundTopY - GroundedPropSink), new Vector2(ColumnWidth, ColumnHeight), PillarSortingOrder);
+
+        Debug.Log($"[Column] {fileName} at X={x}: height={height}");
+    }
+
+    private static GameObject AddRaisableFloor(Transform parent, string name, float leftX, float rightX, float initialTopY, float targetTopY)
+    {
+        var width = rightX - leftX;
+        var centerX = (leftX + rightX) * 0.5f;
+        var floorHeight = 0.25f;
+
+        var floorObj = new GameObject(name);
+        floorObj.transform.SetParent(parent);
+        floorObj.transform.position = new Vector3(centerX, initialTopY - floorHeight * 0.5f, 0f);
+
+        var spriteObj = new GameObject(name + "_visual");
+        spriteObj.transform.SetParent(floorObj.transform);
+        spriteObj.transform.localPosition = Vector3.zero;
+        CreateTiledGroundArt(spriteObj.transform, name + "_sprite", "Assets/Art/Environment/RomanColumns/roman_columns_ground.png", leftX - centerX, rightX - centerX, GroundArtHeight);
+
+        var colliderObj = new GameObject(name + "_collider");
+        colliderObj.transform.SetParent(floorObj.transform);
+        colliderObj.transform.localPosition = Vector3.zero;
+        var collider = colliderObj.AddComponent<BoxCollider2D>();
+        collider.size = new Vector2(width, floorHeight);
+
+        var raisedFloor = floorObj.AddComponent<RaisedFloor2D>();
+        raisedFloor.Initialize(floorObj.transform.position, new Vector3(centerX, targetTopY - floorHeight * 0.5f, 0f));
+
+        Debug.Log($"[RaisableFloor] {name}: X={leftX}-{rightX}, initialY={initialTopY}, targetY={targetTopY}");
+
+        return floorObj;
+    }
+
+    private static void AddTriggerZone(Transform parent, GameObject raisedFloor, float centerX, float centerY, float width, float height)
+    {
+        var triggerObj = new GameObject("trigger_zone");
+        triggerObj.transform.SetParent(parent);
+        triggerObj.transform.position = new Vector3(centerX, centerY, 0f);
+
+        var collider = triggerObj.AddComponent<BoxCollider2D>();
+        collider.size = new Vector2(width, height);
+        collider.isTrigger = true;
+
+        var trigger = triggerObj.AddComponent<RaiseFloorTrigger2D>();
+        trigger.SetRaisedFloor(raisedFloor.GetComponent<RaisedFloor2D>());
+
+        Debug.Log($"[TriggerZone] at X={centerX}, Y={centerY}, size=({width}, {height})");
+    }
+
     private static bool ShouldBuildInScene(string sceneName)
     {
-        // Prototype stage: build in any opened scene so Play works from Unity's default Untitled scene too.
         return true;
     }
 }
