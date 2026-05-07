@@ -32,6 +32,7 @@ public sealed class PrototypePlayerAnimationBootstrap : MonoBehaviour
             return;
         }
 
+        Debug.Log($"[PrototypePlayerAnimationBootstrap] Loaded: Idle={idlePaths.Length}, Run={runPaths.Length}, Jump={jumpPaths.Length}, Land={landPaths.Length}, Turn={turnPaths.Length}");
         frameAnimator.Configure(idlePaths, runPaths, jumpPaths, landPaths, turnPaths);
 #endif
     }
