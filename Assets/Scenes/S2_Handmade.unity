@@ -15734,6 +15734,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9001625900033305879, guid: efc84c75cdb3ba342a113765f9fdd55b, type: 3}
+      propertyPath: m_Mass
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9001625900033305879, guid: efc84c75cdb3ba342a113765f9fdd55b, type: 3}
+      propertyPath: m_GravityScale
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 9001625900033305879, guid: efc84c75cdb3ba342a113765f9fdd55b, type: 3}
+      propertyPath: m_LinearDamping
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9001625900033305879, guid: efc84c75cdb3ba342a113765f9fdd55b, type: 3}
+      propertyPath: m_CollisionDetection
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -16587,6 +16603,18 @@ PrefabInstance:
     - target: {fileID: 2779061199234446743, guid: efc84c75cdb3ba342a113765f9fdd55b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9001625900033305879, guid: efc84c75cdb3ba342a113765f9fdd55b, type: 3}
+      propertyPath: m_Mass
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9001625900033305879, guid: efc84c75cdb3ba342a113765f9fdd55b, type: 3}
+      propertyPath: m_LinearDamping
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9001625900033305879, guid: efc84c75cdb3ba342a113765f9fdd55b, type: 3}
+      propertyPath: m_CollisionDetection
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
