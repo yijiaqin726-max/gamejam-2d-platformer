@@ -29,6 +29,7 @@ public sealed class PrototypePlayerAnimationBootstrap : MonoBehaviour
         if (idlePaths.Length == 0)
         {
             Debug.LogError("No Idle animation frames found in Assets/Animations/Player/Idle/Frames");
+            return;
         }
 
         frameAnimator.Configure(idlePaths, runPaths, jumpPaths, landPaths, turnPaths);
@@ -55,9 +56,11 @@ public sealed class PrototypePlayerAnimationBootstrap : MonoBehaviour
             return System.Array.Empty<string>();
         }
 
+        var projectRoot = System.IO.Path.GetFullPath(".");
         var assetPaths = files
-            .Select(f => f.Replace("\\", "/"))
-            .OrderBy(f => Path.GetFileNameWithoutExtension(f))
+            .Select(f => System.IO.Path.GetFullPath(f))
+            .Select(f => f.Replace(projectRoot, "").Replace("\\", "/").TrimStart('/'))
+            .OrderBy(f => System.IO.Path.GetFileNameWithoutExtension(f))
             .ToArray();
 
         return assetPaths;
