@@ -14,9 +14,17 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [SerializeField] private float doubleJumpHeight = 3.25f;
     [SerializeField] private LayerMask groundMask = ~0;
     [SerializeField] private AudioSource audioSource;
+
+    [Header("Jump SFX")]
     [SerializeField] private AudioClip jumpSfx;
     [SerializeField] private AudioClip doubleJumpSfx;
     [SerializeField] private float jumpSfxVolume = 0.8f;
+
+    [Header("Footstep SFX")]
+    [SerializeField] private AudioClip[] grassFootstepSfx;
+    [SerializeField] private float footstepVolume = 0.45f;
+    [SerializeField] private float footstepInterval = 0.32f;
+    [SerializeField] private float minFootstepSpeed = 0.1f;
 
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
@@ -26,6 +34,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private bool isTurning;
     private int facingDirection = 1;
     private int remainingAirJumps;
+    private float footstepTimer;
 
     private void Awake()
     {
@@ -35,10 +44,15 @@ public sealed class PrototypePlayerController : MonoBehaviour
         if (audioSource == null)
         {
             audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                Debug.LogWarning("AudioSource not found on Player Prototype. Please add an AudioSource component.");
+            }
         }
         body.freezeRotation = true;
         wasGrounded = true;
         remainingAirJumps = 1;
+        footstepTimer = 0f;
     }
 
     private void Update()
@@ -135,6 +149,21 @@ public sealed class PrototypePlayerController : MonoBehaviour
             {
                 audioSource.PlayOneShot(doubleJumpSfx, jumpSfxVolume);
             }
+        }
+
+        if (grounded && Mathf.Abs(horizontal) > minFootstepSpeed && !isLanding && !isTurning && grassFootstepSfx != null && grassFootstepSfx.Length > 0 && audioSource != null)
+        {
+            footstepTimer += Time.deltaTime;
+            if (footstepTimer >= footstepInterval)
+            {
+                int randomIndex = Random.Range(0, grassFootstepSfx.Length);
+                audioSource.PlayOneShot(grassFootstepSfx[randomIndex], footstepVolume);
+                footstepTimer = 0f;
+            }
+        }
+        else
+        {
+            footstepTimer = 0f;
         }
 
         if (!grounded)
