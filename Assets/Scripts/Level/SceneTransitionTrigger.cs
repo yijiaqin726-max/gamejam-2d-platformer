@@ -1,11 +1,14 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 [RequireComponent(typeof(BoxCollider2D))]
 public sealed class SceneTransitionTrigger : MonoBehaviour
 {
     [SerializeField] private string nextSceneName;
-    [SerializeField] private float delayBeforeLoad = 0.3f;
+    [SerializeField] private float fadeOutDuration = 0.8f;
+    [SerializeField] private float delayBeforeLoad = 0.1f;
+    [SerializeField] private bool useFade = true;
     private bool hasTriggered;
 
     private void Awake()
@@ -34,11 +37,28 @@ public sealed class SceneTransitionTrigger : MonoBehaviour
         }
 
         hasTriggered = true;
-        Invoke(nameof(LoadNextScene), delayBeforeLoad);
+        StartCoroutine(TransitionToNextScene());
     }
 
-    private void LoadNextScene()
+    private IEnumerator TransitionToNextScene()
     {
+        if (useFade)
+        {
+            ScreenFadeController fadeController = FindObjectOfType<ScreenFadeController>();
+            if (fadeController != null)
+            {
+                yield return StartCoroutine(fadeController.FadeOut(fadeOutDuration));
+            }
+            else
+            {
+                yield return new WaitForSeconds(delayBeforeLoad);
+            }
+        }
+        else
+        {
+            yield return new WaitForSeconds(delayBeforeLoad);
+        }
+
         SceneManager.LoadScene(nextSceneName);
     }
 }
