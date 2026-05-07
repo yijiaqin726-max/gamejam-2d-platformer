@@ -5,24 +5,26 @@ public class ShadowDeathZone : MonoBehaviour
     [SerializeField] private Transform respawnPoint;
 
     private static Vector3 defaultRespawnPosition;
-    private static bool respawnInitialized;
 
     public static void SetDefaultRespawnPosition(Vector3 pos)
     {
         defaultRespawnPosition = pos;
-        respawnInitialized = true;
     }
 
     private void Awake()
     {
-        if (!respawnInitialized)
+        if (respawnPoint == null)
         {
             var rp = GameObject.Find("RespawnPoint");
             if (rp != null)
             {
-                defaultRespawnPosition = rp.transform.position;
-                respawnInitialized = true;
+                respawnPoint = rp.transform;
             }
+        }
+
+        if (respawnPoint != null)
+        {
+            SetDefaultRespawnPosition(respawnPoint.position);
         }
     }
 
