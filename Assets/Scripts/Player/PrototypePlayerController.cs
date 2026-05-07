@@ -6,12 +6,17 @@ using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(SpriteRenderer))]
+[RequireComponent(typeof(AudioSource))]
 public sealed class PrototypePlayerController : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float jumpVelocity = 8f;
     [SerializeField] private float doubleJumpHeight = 3.25f;
     [SerializeField] private LayerMask groundMask = ~0;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip jumpSfx;
+    [SerializeField] private AudioClip doubleJumpSfx;
+    [SerializeField] private float jumpSfxVolume = 0.8f;
 
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
@@ -27,6 +32,10 @@ public sealed class PrototypePlayerController : MonoBehaviour
         body = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         frameAnimator = GetComponent<PrototypeFrameAnimator>();
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
         body.freezeRotation = true;
         wasGrounded = true;
         remainingAirJumps = 1;
@@ -112,12 +121,20 @@ public sealed class PrototypePlayerController : MonoBehaviour
         {
             body.linearVelocity = new Vector2(body.linearVelocity.x, jumpVelocity);
             grounded = false;
+            if (audioSource != null && jumpSfx != null)
+            {
+                audioSource.PlayOneShot(jumpSfx, jumpSfxVolume);
+            }
         }
         else if (jumpPressed && !grounded && remainingAirJumps > 0)
         {
             body.linearVelocity = new Vector2(body.linearVelocity.x, CalculateJumpVelocity(doubleJumpHeight));
             remainingAirJumps--;
             grounded = false;
+            if (audioSource != null && doubleJumpSfx != null)
+            {
+                audioSource.PlayOneShot(doubleJumpSfx, jumpSfxVolume);
+            }
         }
 
         if (!grounded)
