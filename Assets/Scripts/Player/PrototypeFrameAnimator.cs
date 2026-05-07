@@ -6,6 +6,56 @@ using UnityEditor;
 
 public sealed class PrototypeFrameAnimator : MonoBehaviour
 {
+    private static readonly string[] DefaultIdlePaths =
+    {
+        "Assets/Animations/Player/Idle/Frames/player_idle_01.png",
+        "Assets/Animations/Player/Idle/Frames/player_idle_02.png",
+        "Assets/Animations/Player/Idle/Frames/player_idle_03.png",
+        "Assets/Animations/Player/Idle/Frames/player_idle_04.png"
+    };
+
+    private static readonly string[] DefaultRunPaths =
+    {
+        "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_01.png",
+        "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_02.png",
+        "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_03.png",
+        "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_04.png",
+        "Assets/Animations/Player/RunLeftLegForward/Frames/player_run_left_leg_forward_05.png",
+        "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_01.png",
+        "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_02.png",
+        "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_03.png",
+        "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_04.png",
+        "Assets/Animations/Player/RunRightLegForward/Frames/player_run_right_leg_forward_05.png"
+    };
+
+    private static readonly string[] DefaultJumpPaths =
+    {
+        "Assets/Animations/Player/Jump/Frames/player_jump_00.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_01.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_02.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_03.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_04.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_05.png"
+    };
+
+    private static readonly string[] DefaultLandPaths =
+    {
+        "Assets/Animations/Player/Jump/Frames/player_jump_06.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_07.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_08.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_09.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_10.png"
+    };
+
+    private static readonly string[] DefaultTurnPaths =
+    {
+        "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_01.png",
+        "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_02.png",
+        "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_03.png",
+        "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_04.png",
+        "Assets/Animations/Player/RunToStop/Frames/player_run_to_stop_05.png"
+    };
+
     public enum MotionState
     {
         Idle,
@@ -38,6 +88,11 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     public bool IsLandingComplete => landingComplete;
     public bool IsTurnComplete => turnComplete;
     public bool HasTurnFrames => turnFrames != null && turnFrames.Length > 0;
+
+    public void ConfigureDefaultPlayerFrames(float spritePixelsPerUnit = 128f)
+    {
+        Configure(DefaultIdlePaths, DefaultRunPaths, DefaultJumpPaths, DefaultLandPaths, DefaultTurnPaths, spritePixelsPerUnit);
+    }
 
     public void Configure(string[] idlePaths, string[] runPaths, string[] jumpPaths, string[] landPaths, string[] turnPaths, float spritePixelsPerUnit = 128f)
     {
@@ -75,6 +130,10 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     private void Awake()
     {
         targetRenderer = targetRenderer != null ? targetRenderer : GetComponent<SpriteRenderer>();
+        if (!HasAnyFrames())
+        {
+            ConfigureDefaultPlayerFrames(pixelsPerUnit);
+        }
     }
 
     private void Update()
@@ -155,6 +214,15 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
             MotionState.Turn => turnFps,
             _ => idleFps
         };
+    }
+
+    private bool HasAnyFrames()
+    {
+        return (idleFrames != null && idleFrames.Length > 0)
+            || (runFrames != null && runFrames.Length > 0)
+            || (jumpFrames != null && jumpFrames.Length > 0)
+            || (landFrames != null && landFrames.Length > 0)
+            || (turnFrames != null && turnFrames.Length > 0);
     }
 
     private static Sprite[] LoadSprites(string[] paths, float pixelsPerUnit)
