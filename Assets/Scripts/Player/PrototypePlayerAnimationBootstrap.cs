@@ -55,7 +55,6 @@ public sealed class PrototypePlayerAnimationBootstrap : MonoBehaviour
             return System.Array.Empty<string>();
         }
 
-        // Convert to asset paths and sort by filename
         var assetPaths = files
             .Select(f => f.Replace("\\", "/"))
             .OrderBy(f => Path.GetFileNameWithoutExtension(f))

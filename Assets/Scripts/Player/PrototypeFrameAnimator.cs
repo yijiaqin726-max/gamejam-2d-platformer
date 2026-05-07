@@ -23,13 +23,12 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     [SerializeField] private float turnFps = 18f;
     [SerializeField] private float idleFirstFrameHoldSeconds = 0.4f;
     [SerializeField] private float pixelsPerUnit = 128f;
-    [SerializeField] private bool debugAnimator = false;
 
-    [SerializeField] private Sprite[] idleFrames;
-    [SerializeField] private Sprite[] runFrames;
-    [SerializeField] private Sprite[] jumpFrames;
-    [SerializeField] private Sprite[] landFrames;
-    [SerializeField] private Sprite[] turnFrames;
+    private Sprite[] idleFrames;
+    private Sprite[] runFrames;
+    private Sprite[] jumpFrames;
+    private Sprite[] landFrames;
+    private Sprite[] turnFrames;
     private MotionState currentState;
     private float timer;
     private int frameIndex;
@@ -76,16 +75,6 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     private void Awake()
     {
         targetRenderer = targetRenderer != null ? targetRenderer : GetComponent<SpriteRenderer>();
-
-        if (debugAnimator)
-        {
-            Debug.Log($"[PrototypeFrameAnimator] idleFrames: {idleFrames?.Length ?? 0}, runFrames: {runFrames?.Length ?? 0}, jumpFrames: {jumpFrames?.Length ?? 0}, landFrames: {landFrames?.Length ?? 0}, turnFrames: {turnFrames?.Length ?? 0}, targetRenderer: {(targetRenderer != null ? "assigned" : "null")}");
-        }
-
-        if (idleFrames != null && idleFrames.Length > 0)
-        {
-            SetState(MotionState.Idle, true);
-        }
     }
 
     private void Update()
@@ -148,10 +137,10 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     {
         return currentState switch
         {
-            MotionState.Run => (runFrames != null && runFrames.Length > 0) ? runFrames : (idleFrames ?? System.Array.Empty<Sprite>()),
-            MotionState.Jump => (jumpFrames != null && jumpFrames.Length > 0) ? jumpFrames : (idleFrames ?? System.Array.Empty<Sprite>()),
+            MotionState.Run => runFrames ?? System.Array.Empty<Sprite>(),
+            MotionState.Jump => jumpFrames ?? System.Array.Empty<Sprite>(),
             MotionState.Land => (landFrames != null && landFrames.Length > 0) ? landFrames : (idleFrames ?? System.Array.Empty<Sprite>()),
-            MotionState.Turn => (turnFrames != null && turnFrames.Length > 0) ? turnFrames : ((runFrames != null && runFrames.Length > 0) ? runFrames : (idleFrames ?? System.Array.Empty<Sprite>())),
+            MotionState.Turn => (turnFrames != null && turnFrames.Length > 0) ? turnFrames : (runFrames ?? System.Array.Empty<Sprite>()),
             _ => idleFrames ?? System.Array.Empty<Sprite>()
         };
     }
