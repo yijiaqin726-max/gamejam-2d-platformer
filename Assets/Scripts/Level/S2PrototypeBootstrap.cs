@@ -893,6 +893,6 @@ public static class S2PrototypeBootstrap
 
     private static bool ShouldBuildInScene(string sceneName)
     {
-        return true;
+        return sceneName == SceneName || sceneName == LegacyStartSceneName;
     }
 }
