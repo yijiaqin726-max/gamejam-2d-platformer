@@ -5,14 +5,13 @@ using UnityEngine;
 public sealed class PrototypePlayerController : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 8f;
-    [SerializeField] private float jumpVelocity = 22f;
-    [SerializeField] private float doubleJumpForce = 18f;
+    [SerializeField] private float jumpVelocity = 14f;
+    [SerializeField] private float doubleJumpForce = 11f;
 
-    // 新增：变身叶子飞上天的参数
     [Header("变身叶子")]
-    public float leafFlySpeed = 10f;       // 飞得多快
-    public float leafFlyTime = 2.5f;       // 飞多久
-    public GameObject leafEffectPrefab;   // 拖入叶子预制体（可选）
+    public float leafUpDownControlSpeed = 4f;
+    public float leafAutoRightSpeed = 3f;
+    public GameObject leafEffectPrefab;
 
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
@@ -20,9 +19,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private bool isGrounded;
     private bool canDoubleJump;
 
-    // 新增：变身状态
     private bool isLeafFlying = false;
-    private float flyTimer = 0;
 
     private void Awake()
     {
@@ -34,7 +31,6 @@ public sealed class PrototypePlayerController : MonoBehaviour
 
     private void Update()
     {
-        // 如果正在变身飞叶子 → 跳过原有操作
         if (isLeafFlying)
         {
             FlyAsLeaf();
@@ -68,64 +64,34 @@ public sealed class PrototypePlayerController : MonoBehaviour
         }
     }
 
-    // 核心功能：被叶子触发 → 变身飞上天
     public void TurnToLeafAndFly()
     {
         if (isLeafFlying) return;
 
         isLeafFlying = true;
-        flyTimer = leafFlyTime;
 
-        // 禁用玩家控制
         body.velocity = Vector2.zero;
         body.isKinematic = true;
         GetComponent<Collider2D>().enabled = false;
 
-        // 隐藏玩家，显示叶子效果
         spriteRenderer.enabled = false;
         ani.enabled = false;
 
-        // 如果你有叶子预制体，会自动生成
         if (leafEffectPrefab != null)
         {
             Instantiate(leafEffectPrefab, transform);
         }
     }
 
-    // 变身飞行逻辑
     void FlyAsLeaf()
     {
-        // 向上飞 + 旋转
-        transform.Translate(Vector2.up * leafFlySpeed * Time.deltaTime);
-        transform.Rotate(0, 0, 120f * Time.deltaTime);
-
-        // 计时结束 → 恢复玩家
-        flyTimer -= Time.deltaTime;
-        if (flyTimer <= 0)
-        {
-            RecoverFromLeaf();
-        }
+        float v = Input.GetAxisRaw("Vertical");
+        body.velocity = new Vector2(leafAutoRightSpeed, v * leafUpDownControlSpeed);
     }
 
-    // 恢复玩家
-    void RecoverFromLeaf()
+    public bool IsLeafFlying()
     {
-        isLeafFlying = false;
-
-        // 恢复控制
-        body.isKinematic = false;
-        GetComponent<Collider2D>().enabled = true;
-
-        // 恢复显示
-        spriteRenderer.enabled = true;
-        ani.enabled = true;
-        transform.rotation = Quaternion.identity;
-
-        // 销毁身上的叶子
-        foreach (Transform child in transform)
-        {
-            Destroy(child.gameObject);
-        }
+        return isLeafFlying;
     }
 
     private void OnCollisionEnter2D(Collision2D col)
