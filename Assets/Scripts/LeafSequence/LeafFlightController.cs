@@ -16,9 +16,11 @@ public sealed class LeafFlightController : MonoBehaviour
     [SerializeField] private PrototypePlayerController playerController;
     [SerializeField] private bool useWAndS = true;
     [SerializeField] private bool useUpDownArrow = true;
+    [SerializeField] private bool replayBurstOnReset = true;
 
     private bool isFlying = false;
     private float burstTimer = 0f;
+    private Vector3 flightStartPosition;
 
     private void Start()
     {
@@ -67,6 +69,7 @@ public sealed class LeafFlightController : MonoBehaviour
 
         isFlying = true;
         burstTimer = 0f;
+        flightStartPosition = startPosition;
 
         transform.position = startPosition;
 
@@ -86,6 +89,23 @@ public sealed class LeafFlightController : MonoBehaviour
     {
         if (flightStartPoint != null)
             transform.position = flightStartPoint.position;
+        else
+            transform.position = flightStartPosition;
+
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
+
+        burstTimer = replayBurstOnReset ? 0f : burstDuration;
+        isFlying = true;
+
+        if (leafVisualRoot != null)
+            leafVisualRoot.SetActive(true);
+
+        Debug.Log("Leaf reset to flight start");
     }
 
     public void EndFlight()

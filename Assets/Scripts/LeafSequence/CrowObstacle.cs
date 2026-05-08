@@ -11,6 +11,7 @@ public sealed class CrowObstacle : MonoBehaviour
     [SerializeField] private float destroyX = -30f;
 
     private float currentSpeed;
+    private bool hasHitLeaf;
 
     private void Start()
     {
@@ -29,11 +30,17 @@ public sealed class CrowObstacle : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        LeafFlightController leafFlight = collision.GetComponent<LeafFlightController>();
-        if (leafFlight != null)
-        {
-            leafFlight.ResetFlightToStart();
-        }
+        if (hasHitLeaf)
+            return;
+
+        LeafFlightController leafFlight = collision.GetComponentInParent<LeafFlightController>();
+        if (leafFlight == null)
+            return;
+
+        hasHitLeaf = true;
+        Debug.Log("Leaf hit crow, resetting");
+        leafFlight.ResetFlightToStart();
+        Destroy(gameObject);
     }
 
     public void SetMoveSpeed(float speed)
