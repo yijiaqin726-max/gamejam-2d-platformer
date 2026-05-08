@@ -13,6 +13,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [SerializeField] private float jumpVelocity = 8f;
     [SerializeField] private float doubleJumpHeight = 3.25f;
     [SerializeField] private LayerMask groundMask = ~0;
+    [SerializeField] private int maxJumps = 2;
     [SerializeField] private AudioSource audioSource;
 
     [Header("Jump SFX")]
@@ -33,7 +34,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private bool isLanding;
     private bool isTurning;
     private int facingDirection = 1;
-    private int remainingAirJumps;
+    private int remainingJumps;
     private float footstepTimer;
 
     private void Awake()
@@ -51,7 +52,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
         }
         body.freezeRotation = true;
         wasGrounded = true;
-        remainingAirJumps = 1;
+        remainingJumps = maxJumps;
         footstepTimer = 0f;
     }
 
@@ -60,7 +61,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
         var grounded = IsGrounded();
         if (grounded && body.linearVelocity.y <= 0.01f)
         {
-            remainingAirJumps = 1;
+            remainingJumps = maxJumps;
         }
 
         if (!wasGrounded && grounded && frameAnimator != null)
@@ -131,24 +132,26 @@ public sealed class PrototypePlayerController : MonoBehaviour
         }
 
         var jumpPressed = WasJumpPressed();
-        if (jumpPressed && grounded)
+        if (jumpPressed && remainingJumps > 0)
         {
-            body.linearVelocity = new Vector2(body.linearVelocity.x, jumpVelocity);
-            grounded = false;
-            if (audioSource != null && jumpSfx != null)
+            if (grounded)
             {
-                audioSource.PlayOneShot(jumpSfx, jumpSfxVolume);
+                body.linearVelocity = new Vector2(body.linearVelocity.x, jumpVelocity);
+                if (audioSource != null && jumpSfx != null)
+                {
+                    audioSource.PlayOneShot(jumpSfx, jumpSfxVolume);
+                }
             }
-        }
-        else if (jumpPressed && !grounded && remainingAirJumps > 0)
-        {
-            body.linearVelocity = new Vector2(body.linearVelocity.x, CalculateJumpVelocity(doubleJumpHeight));
-            remainingAirJumps--;
-            grounded = false;
-            if (audioSource != null && doubleJumpSfx != null)
+            else
             {
-                audioSource.PlayOneShot(doubleJumpSfx, jumpSfxVolume);
+                body.linearVelocity = new Vector2(body.linearVelocity.x, CalculateJumpVelocity(doubleJumpHeight));
+                if (audioSource != null && doubleJumpSfx != null)
+                {
+                    audioSource.PlayOneShot(doubleJumpSfx, jumpSfxVolume);
+                }
             }
+            remainingJumps--;
+            grounded = false;
         }
 
         if (grounded && Mathf.Abs(horizontal) > minFootstepSpeed && !isLanding && !isTurning && grassFootstepSfx != null && grassFootstepSfx.Length > 0 && audioSource != null)
@@ -224,5 +227,15 @@ public sealed class PrototypePlayerController : MonoBehaviour
 #else
         return Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.Space);
 #endif
+    }
+
+    public bool IsLeafFlying()
+    {
+        return false;
+    }
+
+    public void TurnToLeafAndFly()
+    {
+        Debug.Log("TurnToLeafAndFly called - leaf transformation not implemented in current player controller");
     }
 }

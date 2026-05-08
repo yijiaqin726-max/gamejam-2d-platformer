@@ -19,7 +19,7 @@ public class PlayerController : MonoBehaviour
     {
         // 移动
         float moveInput = Input.GetAxis("Horizontal");
-        rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
+        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
         // 跑步动画
         anim.SetFloat("speed", Mathf.Abs(moveInput));
@@ -27,12 +27,12 @@ public class PlayerController : MonoBehaviour
         // 跳跃
         if (Input.GetButtonDown("Jump"))
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             anim.Play("jump");
         }
 
         // 落地切回待机
-        if (Mathf.Abs(rb.velocity.y) < 0.1f)
+        if (Mathf.Abs(rb.linearVelocity.y) < 0.1f)
         {
             if (Mathf.Abs(moveInput) > 0.1f)
                 anim.Play("run");

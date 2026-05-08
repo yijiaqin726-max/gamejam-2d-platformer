@@ -26,7 +26,7 @@ public class ObstacleBird : MonoBehaviour
     void FixedUpdate()
     {
         // 向左飞 + 轻微上下偏移
-        rb.velocity = new Vector2(-moveSpeed, verticalOffset);
+        rb.linearVelocity = new Vector2(-moveSpeed, verticalOffset);
 
         // 飞出屏幕左边界后自动销毁，防止场景堆太多对象
         if (transform.position.x < Camera.main.ScreenToWorldPoint(Vector3.zero).x - 2f)
