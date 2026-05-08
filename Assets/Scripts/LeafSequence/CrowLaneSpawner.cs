@@ -1,19 +1,17 @@
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// 乌鸦障碍生成器
-/// 在三条固定高度的 lane 中随机生成乌鸦
-/// 乌鸦从右向左移动
-/// </summary>
 public sealed class CrowLaneSpawner : MonoBehaviour
 {
     [SerializeField] private CrowObstacle crowPrefab;
     [SerializeField] private Transform spawnPoint;
+    [SerializeField] private Transform followTarget;
+    [SerializeField] private float spawnAheadDistance = 14f;
     [SerializeField] private float[] laneYPositions = new float[] { -1f, 0.5f, 2f };
-    [SerializeField] private float spawnIntervalMin = 1.2f;
-    [SerializeField] private float spawnIntervalMax = 2.3f;
-    [SerializeField] private float crowSpeed = 5f;
+    [SerializeField] private float spawnIntervalMin = 2.0f;
+    [SerializeField] private float spawnIntervalMax = 3.2f;
+    [SerializeField] private float crowSpeed = 9f;
+    [SerializeField] private float startDelay = 1.0f;
     [SerializeField] private bool autoStart = false;
 
     private bool isSpawning;
@@ -46,6 +44,9 @@ public sealed class CrowLaneSpawner : MonoBehaviour
 
     private IEnumerator SpawnLoop()
     {
+        if (startDelay > 0f)
+            yield return new WaitForSeconds(startDelay);
+
         while (isSpawning)
         {
             float interval = Random.Range(spawnIntervalMin, spawnIntervalMax);
@@ -60,16 +61,29 @@ public sealed class CrowLaneSpawner : MonoBehaviour
 
     private void SpawnCrow()
     {
-        if (crowPrefab == null || spawnPoint == null)
+        if (crowPrefab == null || laneYPositions == null || laneYPositions.Length == 0)
             return;
 
-        // 随机选择一条 lane
         int laneIndex = Random.Range(0, laneYPositions.Length);
         float laneY = laneYPositions[laneIndex];
+        Vector3 spawnPosition;
 
-        // 实例化乌鸦
-        CrowObstacle crow = Instantiate(crowPrefab, spawnPoint.position, Quaternion.identity);
-        crow.transform.position = new Vector3(crow.transform.position.x, laneY, 0f);
+        if (followTarget != null)
+        {
+            float spawnX = followTarget.position.x + spawnAheadDistance;
+            spawnPosition = new Vector3(spawnX, laneY, 0f);
+        }
+        else
+        {
+            if (spawnPoint == null)
+                return;
+
+            spawnPosition = spawnPoint.position;
+            spawnPosition.y = laneY;
+            spawnPosition.z = 0f;
+        }
+
+        CrowObstacle crow = Instantiate(crowPrefab, spawnPosition, Quaternion.identity);
         crow.SetMoveSpeed(crowSpeed);
     }
 }

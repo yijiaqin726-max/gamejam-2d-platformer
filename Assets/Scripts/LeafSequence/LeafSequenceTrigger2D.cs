@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Reflection;
 using UnityEngine;
 
 public sealed class LeafSequenceTrigger2D : MonoBehaviour
@@ -10,7 +12,13 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
     [SerializeField] private MonoBehaviour playerController;
     [SerializeField] private float delayBeforeLeafMode = 0.2f;
 
+    private static readonly FieldInfo GuideLeafEndPointField = typeof(BezierFallingLeaf).GetField(
+        "endPoint",
+        BindingFlags.Instance | BindingFlags.NonPublic);
+
     private bool hasTriggered;
+    private Vector3 lockedPlayerPosition;
+    private Rigidbody2D lockedPlayerRb;
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -25,35 +33,54 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
         if (player == null)
             player = collision.transform;
 
+        LockPlayerAtCurrentPosition();
+
         hasTriggered = true;
         StartCoroutine(PlayLeafSequence());
     }
 
-    private System.Collections.IEnumerator PlayLeafSequence()
+    private IEnumerator PlayLeafSequence()
     {
-        if (playerController != null)
-            playerController.enabled = false;
+        Vector3 leafStartPosition = lockedPlayerPosition + new Vector3(0f, 0.5f, 0f);
+        AlignGuideLeafEndPoint(leafStartPosition);
 
         if (guideLeaf != null)
-            yield return StartCoroutine(guideLeaf.PlayFall());
+        {
+            IEnumerator fallRoutine = guideLeaf.PlayFall();
+            bool loggedForcedPosition = false;
+            while (fallRoutine.MoveNext())
+            {
+                ForceLockedPlayerPosition();
+                if (!loggedForcedPosition)
+                {
+                    Debug.Log("Player transform forced during leaf fall");
+                    loggedForcedPosition = true;
+                }
 
-        yield return new WaitForSeconds(delayBeforeLeafMode);
+                yield return fallRoutine.Current;
+            }
+        }
+
+        float delayTimer = 0f;
+        while (delayTimer < delayBeforeLeafMode)
+        {
+            ForceLockedPlayerPosition();
+            delayTimer += Time.deltaTime;
+            yield return null;
+        }
 
         Debug.Log("Entering leaf flight mode");
 
-        if (playerController != null)
-            playerController.enabled = false;
-
-        ClearPlayerVelocity();
+        ForceLockedPlayerPosition();
 
         if (playerVisualRoot != null)
             SetPlayerRenderersEnabled(false);
 
         if (leafFlightController != null)
         {
-            Vector3 leafStartPosition = guideLeaf != null ? guideLeaf.transform.position : leafFlightController.transform.position;
             HideGuideLeafVisual();
             Debug.Log("Calling LeafFlightController.BeginFlight");
+            Debug.Log("Leaf transform begins at locked player position");
             leafFlightController.BeginFlight(leafStartPosition);
             SwitchCameraToLeafFlightRoot();
         }
@@ -64,6 +91,48 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
 
         if (crowLaneSpawner != null)
             crowLaneSpawner.StartSpawning();
+    }
+
+    private void LockPlayerAtCurrentPosition()
+    {
+        if (player == null)
+            return;
+
+        lockedPlayerPosition = player.position;
+        lockedPlayerRb = player.GetComponent<Rigidbody2D>();
+
+        if (playerController == null)
+        {
+            playerController = player.GetComponent<PrototypePlayerController>();
+            if (playerController == null)
+                playerController = player.GetComponentInChildren<PrototypePlayerController>();
+        }
+
+        if (playerController != null)
+            playerController.enabled = false;
+
+        ClearPlayerVelocity();
+        player.position = lockedPlayerPosition;
+
+        Debug.Log("Player locked at: " + lockedPlayerPosition);
+    }
+
+    private void ForceLockedPlayerPosition()
+    {
+        if (player != null)
+            player.position = lockedPlayerPosition;
+
+        ClearPlayerVelocity();
+    }
+
+    private void AlignGuideLeafEndPoint(Vector3 endPosition)
+    {
+        if (guideLeaf == null || GuideLeafEndPointField == null)
+            return;
+
+        Transform endPoint = GuideLeafEndPointField.GetValue(guideLeaf) as Transform;
+        if (endPoint != null)
+            endPoint.position = endPosition;
     }
 
     private void HideGuideLeafVisual()
@@ -97,15 +166,14 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
 
     private void ClearPlayerVelocity()
     {
-        if (player == null)
+        if (lockedPlayerRb == null && player != null)
+            lockedPlayerRb = player.GetComponent<Rigidbody2D>();
+
+        if (lockedPlayerRb == null)
             return;
 
-        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
-        if (rb == null)
-            return;
-
-        rb.linearVelocity = Vector2.zero;
-        rb.angularVelocity = 0f;
+        lockedPlayerRb.linearVelocity = Vector2.zero;
+        lockedPlayerRb.angularVelocity = 0f;
     }
 
     private void SetPlayerRenderersEnabled(bool enabled)
