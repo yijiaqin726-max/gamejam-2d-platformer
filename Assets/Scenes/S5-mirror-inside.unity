@@ -3036,8 +3036,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PrototypePlayerController
   moveSpeed: 5
-  jumpVelocity: 6.2
-  doubleJumpHeight: 2.2
+  jumpVelocity: 5
+  doubleJumpHeight: 2
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
