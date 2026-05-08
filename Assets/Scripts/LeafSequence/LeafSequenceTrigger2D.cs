@@ -19,6 +19,8 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
     private bool hasTriggered;
     private Vector3 lockedPlayerPosition;
     private Rigidbody2D lockedPlayerRb;
+    private PrototypeFrameAnimator lockedPlayerAnimator;
+    private bool hasLoggedForcedIdle;
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -100,6 +102,9 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
 
         lockedPlayerPosition = player.position;
         lockedPlayerRb = player.GetComponent<Rigidbody2D>();
+        lockedPlayerAnimator = player.GetComponent<PrototypeFrameAnimator>();
+        if (lockedPlayerAnimator == null)
+            lockedPlayerAnimator = player.GetComponentInChildren<PrototypeFrameAnimator>();
 
         if (playerController == null)
         {
@@ -112,6 +117,7 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
             playerController.enabled = false;
 
         ClearPlayerVelocity();
+        ForcePlayerIdle();
         player.position = lockedPlayerPosition;
 
         Debug.Log("Player locked at: " + lockedPlayerPosition);
@@ -123,6 +129,20 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
             player.position = lockedPlayerPosition;
 
         ClearPlayerVelocity();
+        ForcePlayerIdle();
+    }
+
+    private void ForcePlayerIdle()
+    {
+        if (lockedPlayerAnimator == null)
+            return;
+
+        lockedPlayerAnimator.SetState(PrototypeFrameAnimator.MotionState.Idle, true);
+        if (!hasLoggedForcedIdle)
+        {
+            Debug.Log("Player forced to idle during leaf transform");
+            hasLoggedForcedIdle = true;
+        }
     }
 
     private void AlignGuideLeafEndPoint(Vector3 endPosition)

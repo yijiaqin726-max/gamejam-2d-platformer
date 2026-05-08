@@ -722,7 +722,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionTrigger
   nextSceneName: S5-mirror-room
+  fadeOutDuration: 0.8
   delayBeforeLoad: 0.3
+  useFade: 1
 --- !u!1 &70510252
 GameObject:
   m_ObjectHideFlags: 0
@@ -13730,11 +13732,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1727893389}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: da5646fc503207345983271c54f1514e, type: 3}
+  m_Script: {fileID: 11500000, guid: 7c0ecb2e293f56f4daf516272922c6c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimpleCameraFollow
   target: {fileID: 2004910077}
-  offset: {x: 0, y: 0, z: -10}
+  offset: {x: 0, y: 1.2, z: -10}
   smoothTime: 0.15
   followX: 1
   followY: 0
@@ -16095,7 +16097,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 2.4
+  m_GravityScale: 5
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -16216,6 +16218,7 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  maxJumps: 2
   audioSource: {fileID: 0}
   jumpSfx: {fileID: 8300000, guid: 7820a6fd76d11d04391ee6496db7f3c8, type: 3}
   doubleJumpSfx: {fileID: 8300000, guid: 380e7f5d65bae324895866c9134808a0, type: 3}

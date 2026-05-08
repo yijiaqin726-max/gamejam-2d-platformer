@@ -1114,10 +1114,10 @@ Transform:
   m_LocalScale: {x: 0.08852326, y: 0.08852326, z: 0.08852326}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1208126982}
   - {fileID: 664130755}
   - {fileID: 232479693}
   - {fileID: 1526726527}
-  - {fileID: 1208126982}
   - {fileID: 290511843}
   - {fileID: 1256960366}
   m_Father: {fileID: 0}
@@ -3041,6 +3041,7 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  maxJumps: 2
   audioSource: {fileID: 0}
   jumpSfx: {fileID: 8300000, guid: 7820a6fd76d11d04391ee6496db7f3c8, type: 3}
   doubleJumpSfx: {fileID: 8300000, guid: 380e7f5d65bae324895866c9134808a0, type: 3}
@@ -5480,6 +5481,32 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!1 &2031315862 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7877803610070588372, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
+  m_PrefabInstance: {fileID: 5265522123833216475}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2031315868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2031315862}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c0ecb2e293f56f4daf516272922c6c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleCameraFollow
+  target: {fileID: 1208126982}
+  offset: {x: 0, y: 1.2, z: -10}
+  smoothTime: 0.15
+  followX: 1
+  followY: 0
+  useBounds: 1
+  minX: -10
+  maxX: 60
+  fixedY: 1.5
 --- !u!1 &2118624895
 GameObject:
   m_ObjectHideFlags: 0
@@ -5806,7 +5833,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4783672799066827858, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.01
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4783672799066827858, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5848,34 +5875,15 @@ PrefabInstance:
       propertyPath: m_Name
       value: Main Camera
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2165015991595106463, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 7877803610070588372, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 5265522123833216477}
+      addedObject: {fileID: 2031315868}
   m_SourcePrefab: {fileID: 100100000, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
---- !u!1 &5265522123833216476 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7877803610070588372, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
-  m_PrefabInstance: {fileID: 5265522123833216475}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &5265522123833216477
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5265522123833216476}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a1513451b025bdd409fa602fb6df3d12, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraSceneIntroZoom
-  zoomMultiplier: 0.5
-  zoomDuration: 2
-  startDelay: 0.05
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

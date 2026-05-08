@@ -13732,11 +13732,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1727893389}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: da5646fc503207345983271c54f1514e, type: 3}
+  m_Script: {fileID: 11500000, guid: 7c0ecb2e293f56f4daf516272922c6c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimpleCameraFollow
   target: {fileID: 2004910077}
-  offset: {x: 0, y: 0, z: -10}
+  offset: {x: 0, y: 1.2, z: -10}
   smoothTime: 0.15
   followX: 1
   followY: 0
@@ -16097,7 +16097,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 2.4
+  m_GravityScale: 3
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -16218,6 +16218,7 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  maxJumps: 2
   audioSource: {fileID: 0}
   jumpSfx: {fileID: 8300000, guid: 7820a6fd76d11d04391ee6496db7f3c8, type: 3}
   doubleJumpSfx: {fileID: 8300000, guid: 380e7f5d65bae324895866c9134808a0, type: 3}
@@ -17097,6 +17098,30 @@ PrefabInstance:
     - target: {fileID: 5531397943535691556, guid: c237d21c262631b44b702744620992d7, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6128547055559264205, guid: c237d21c262631b44b702744620992d7, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 15.740552
+      objectReference: {fileID: 0}
+    - target: {fileID: 6128547055559264205, guid: c237d21c262631b44b702744620992d7, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 9.980192
+      objectReference: {fileID: 0}
+    - target: {fileID: 6128547055559264205, guid: c237d21c262631b44b702744620992d7, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.1647233
+      objectReference: {fileID: 0}
+    - target: {fileID: 6735694210294606248, guid: c237d21c262631b44b702744620992d7, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 10.993939
+      objectReference: {fileID: 0}
+    - target: {fileID: 6735694210294606248, guid: c237d21c262631b44b702744620992d7, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 6.779669
+      objectReference: {fileID: 0}
+    - target: {fileID: 6735694210294606248, guid: c237d21c262631b44b702744620992d7, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.0064679
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

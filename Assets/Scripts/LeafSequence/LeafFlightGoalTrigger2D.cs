@@ -19,7 +19,7 @@ public sealed class LeafFlightGoalTrigger2D : MonoBehaviour
         if (hasTriggered)
             return;
 
-        LeafFlightController leafFlight = collision.GetComponent<LeafFlightController>();
+        LeafFlightController leafFlight = collision.GetComponentInParent<LeafFlightController>();
         if (leafFlight == null)
             return;
 
