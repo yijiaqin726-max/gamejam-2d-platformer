@@ -3339,9 +3339,9 @@ MonoBehaviour:
   crowPrefab: {fileID: 4914712147754654338, guid: 886fd24335c5fdf4da58d4787504a078, type: 3}
   spawnPoint: {fileID: 275975838}
   laneYPositions:
-  - -1
-  - 0.5
-  - 2
+  - 25
+  - 30
+  - 35
   spawnIntervalMin: 1.2
   spawnIntervalMax: 2.3
   crowSpeed: 5
@@ -8634,12 +8634,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LeafFlightController
   normalForwardSpeed: 4
-  burstForwardSpeed: 12
-  burstDuration: 0.8
-  burstUpwardSpeed: 2
+  burstForwardSpeed: 5
+  burstDuration: 1.2
+  burstUpwardSpeed: 12
   verticalSpeed: 12
-  minY: -22
-  maxY: -4
+  minY: 4
+  maxY: 18
   flightStartPoint: {fileID: 61118608}
   leafVisualRoot: {fileID: 1648903319}
   playerVisualRoot: {fileID: 590945486}
