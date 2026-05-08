@@ -1,16 +1,13 @@
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// 控制树叶沿贝塞尔曲线优美飘落
-/// 支持缓动和轻微摇晃
-/// </summary>
 public sealed class BezierFallingLeaf : MonoBehaviour
 {
     [SerializeField] private Transform startPoint;
     [SerializeField] private Transform controlPoint;
     [SerializeField] private Transform endPoint;
-    [SerializeField] private float duration = 1.8f;
+    [SerializeField] private float duration = 2.8f;
+    [SerializeField] private bool useGentleEase = true;
     [SerializeField] private float swayAmplitude = 0.15f;
     [SerializeField] private float swayFrequency = 2.0f;
 
@@ -32,20 +29,15 @@ public sealed class BezierFallingLeaf : MonoBehaviour
         {
             elapsedTime += Time.deltaTime;
             float t = Mathf.Clamp01(elapsedTime / duration);
+            float pathT = useGentleEase ? Mathf.Lerp(t, Mathf.SmoothStep(0f, 1f, t), 0.45f) : t;
 
-            // 使用 SmoothStep 缓动
-            float smoothT = Mathf.SmoothStep(0f, 1f, t);
+            Vector3 pos = BezierQuadratic(start, control, end, pathT);
 
-            // 二次贝塞尔曲线
-            Vector3 pos = BezierQuadratic(start, control, end, smoothT);
-
-            // 添加轻微左右摇晃
             float sway = Mathf.Sin(elapsedTime * swayFrequency * Mathf.PI) * swayAmplitude;
             pos.x += sway;
 
             transform.position = pos;
 
-            // 根据移动方向轻微旋转
             if (elapsedTime > 0.1f)
             {
                 float rotZ = sway * 10f;
