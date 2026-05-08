@@ -5806,7 +5806,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4783672799066827858, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -1.01
       objectReference: {fileID: 0}
     - target: {fileID: 4783672799066827858, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5851,8 +5851,31 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7877803610070588372, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5265522123833216477}
   m_SourcePrefab: {fileID: 100100000, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
+--- !u!1 &5265522123833216476 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7877803610070588372, guid: 97be1699762c0a942b1371f08fe1d093, type: 3}
+  m_PrefabInstance: {fileID: 5265522123833216475}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5265522123833216477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5265522123833216476}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1513451b025bdd409fa602fb6df3d12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraSceneIntroZoom
+  zoomMultiplier: 0.5
+  zoomDuration: 2
+  startDelay: 0.05
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

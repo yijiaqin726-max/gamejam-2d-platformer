@@ -722,7 +722,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionTrigger
   nextSceneName: S5-mirror-room
+  fadeOutDuration: 0.8
   delayBeforeLoad: 0.3
+  useFade: 1
 --- !u!1 &70510252
 GameObject:
   m_ObjectHideFlags: 0
