@@ -64,7 +64,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
             remainingJumps = maxJumps;
         }
 
-        if (!wasGrounded && grounded && frameAnimator != null)
+        if (!wasGrounded && grounded && frameAnimator != null && frameAnimator.HasLandFrames)
         {
             isLanding = true;
             isTurning = false;
@@ -73,18 +73,25 @@ public sealed class PrototypePlayerController : MonoBehaviour
 
         if (isLanding)
         {
-            var velocity = body.linearVelocity;
-            velocity.x = 0f;
-            body.linearVelocity = velocity;
-
-            if (frameAnimator == null || frameAnimator.IsLandingComplete)
+            if (frameAnimator == null || !frameAnimator.HasLandFrames)
             {
                 isLanding = false;
             }
             else
             {
-                wasGrounded = grounded;
-                return;
+                var velocity = body.linearVelocity;
+                velocity.x = 0f;
+                body.linearVelocity = velocity;
+
+                if (frameAnimator.IsLandingComplete)
+                {
+                    isLanding = false;
+                }
+                else
+                {
+                    wasGrounded = grounded;
+                    return;
+                }
             }
         }
 
@@ -104,20 +111,27 @@ public sealed class PrototypePlayerController : MonoBehaviour
 
         if (isTurning)
         {
-            var v = body.linearVelocity;
-            v.x = 0f;
-            body.linearVelocity = v;
-
-            if (frameAnimator == null || frameAnimator.IsTurnComplete)
+            if (frameAnimator == null || !frameAnimator.HasTurnFrames)
             {
-                facingDirection = -facingDirection;
-                spriteRenderer.flipX = facingDirection < 0;
                 isTurning = false;
             }
             else
             {
-                wasGrounded = grounded;
-                return;
+                var v = body.linearVelocity;
+                v.x = 0f;
+                body.linearVelocity = v;
+
+                if (frameAnimator.IsTurnComplete)
+                {
+                    facingDirection = -facingDirection;
+                    spriteRenderer.flipX = facingDirection < 0;
+                    isTurning = false;
+                }
+                else
+                {
+                    wasGrounded = grounded;
+                    return;
+                }
             }
         }
 

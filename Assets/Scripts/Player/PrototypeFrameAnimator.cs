@@ -84,9 +84,14 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     private int frameIndex;
     private bool landingComplete;
     private bool turnComplete;
+    private static bool hasLoggedMissingFramesWarning;
 
-    public bool IsLandingComplete => landingComplete;
-    public bool IsTurnComplete => turnComplete;
+    public bool IsLandingComplete => landingComplete || !HasLandFrames;
+    public bool IsTurnComplete => turnComplete || !HasTurnFrames;
+    public bool HasIdleFrames => idleFrames != null && idleFrames.Length > 0;
+    public bool HasRunFrames => runFrames != null && runFrames.Length > 0;
+    public bool HasJumpFrames => jumpFrames != null && jumpFrames.Length > 0;
+    public bool HasLandFrames => landFrames != null && landFrames.Length > 0;
     public bool HasTurnFrames => turnFrames != null && turnFrames.Length > 0;
 
     public void ConfigureDefaultPlayerFrames(float spritePixelsPerUnit = 128f)
@@ -103,11 +108,18 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         jumpFrames = LoadSprites(jumpPaths, pixelsPerUnit);
         landFrames = LoadSprites(landPaths ?? System.Array.Empty<string>(), pixelsPerUnit);
         turnFrames = LoadSprites(turnPaths ?? System.Array.Empty<string>(), pixelsPerUnit);
+        LogMissingFramesWarningIfNeeded();
         SetState(MotionState.Idle, true);
     }
 
     public void SetState(MotionState state, bool forceRestart = false)
     {
+        if (!HasFramesForState(state))
+        {
+            HandleMissingStateFrames(state);
+            return;
+        }
+
         if (!forceRestart && currentState == state)
         {
             return;
@@ -141,6 +153,14 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         var frames = GetFrames();
         if (targetRenderer == null || frames.Length == 0)
         {
+            if (currentState == MotionState.Land)
+            {
+                landingComplete = true;
+            }
+            if (currentState == MotionState.Turn)
+            {
+                turnComplete = true;
+            }
             return;
         }
 
@@ -218,11 +238,53 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
     private bool HasAnyFrames()
     {
-        return (idleFrames != null && idleFrames.Length > 0)
-            || (runFrames != null && runFrames.Length > 0)
-            || (jumpFrames != null && jumpFrames.Length > 0)
-            || (landFrames != null && landFrames.Length > 0)
-            || (turnFrames != null && turnFrames.Length > 0);
+        return HasIdleFrames || HasRunFrames || HasJumpFrames || HasLandFrames || HasTurnFrames;
+    }
+
+    private bool HasFramesForState(MotionState state)
+    {
+        return state switch
+        {
+            MotionState.Run => HasRunFrames,
+            MotionState.Jump => HasJumpFrames,
+            MotionState.Land => HasLandFrames,
+            MotionState.Turn => HasTurnFrames,
+            _ => HasIdleFrames
+        };
+    }
+
+    private void HandleMissingStateFrames(MotionState state)
+    {
+        if (state == MotionState.Land)
+        {
+            landingComplete = true;
+        }
+        if (state == MotionState.Turn)
+        {
+            turnComplete = true;
+        }
+
+        MotionState fallbackState = HasIdleFrames ? MotionState.Idle : (HasRunFrames ? MotionState.Run : currentState);
+        if (fallbackState != currentState && HasFramesForState(fallbackState))
+        {
+            SetState(fallbackState, true);
+            return;
+        }
+
+        timer = 0f;
+        frameIndex = 0;
+        ApplyFrame();
+    }
+
+    private void LogMissingFramesWarningIfNeeded()
+    {
+#if !UNITY_EDITOR
+        if (!HasAnyFrames() && !hasLoggedMissingFramesWarning)
+        {
+            Debug.LogWarning("[PrototypeFrameAnimator] Animation frames missing in build; falling back without blocking control.");
+            hasLoggedMissingFramesWarning = true;
+        }
+#endif
     }
 
     private static Sprite[] LoadSprites(string[] paths, float pixelsPerUnit)
