@@ -8283,7 +8283,7 @@ MonoBehaviour:
   flightStartPoint: {fileID: 61118608}
   leafVisualRoot: {fileID: 1648903319}
   playerVisualRoot: {fileID: 590945486}
-  playerController: {fileID: 590945490}
+  playerController: {fileID: 590945488}
   useWAndS: 1
   useUpDownArrow: 1
 --- !u!1 &1987626309
@@ -8506,7 +8506,7 @@ MonoBehaviour:
   leafFlightController: {fileID: 1986389772}
   crowLaneSpawner: {fileID: 0}
   playerVisualRoot: {fileID: 590945486}
-  playerController: {fileID: 0}
+  playerController: {fileID: 590945488}
   delayBeforeLeafMode: 0.2
 --- !u!61 &2037993827
 BoxCollider2D:

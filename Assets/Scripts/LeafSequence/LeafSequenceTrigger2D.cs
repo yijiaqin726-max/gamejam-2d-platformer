@@ -1,9 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// 触发落叶变身飞行段的入口
-/// 挂在木桩 Trigger 上，检测玩家进入后启动整个流程
-/// </summary>
 public sealed class LeafSequenceTrigger2D : MonoBehaviour
 {
     [SerializeField] private Transform player;
@@ -24,33 +20,66 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
         if (!collision.CompareTag("Player"))
             return;
 
+        Debug.Log("Leaf sequence triggered");
+
+        if (player == null)
+            player = collision.transform;
+
         hasTriggered = true;
         StartCoroutine(PlayLeafSequence());
     }
 
     private System.Collections.IEnumerator PlayLeafSequence()
     {
-        // 禁用玩家控制
         if (playerController != null)
             playerController.enabled = false;
 
-        // 树叶飘落
         if (guideLeaf != null)
             yield return StartCoroutine(guideLeaf.PlayFall());
 
-        // 延迟后进入叶子形态
         yield return new WaitForSeconds(delayBeforeLeafMode);
 
-        // 隐藏玩家视觉
+        Debug.Log("Entering leaf flight mode");
+
+        if (playerController != null)
+            playerController.enabled = false;
+
+        ClearPlayerVelocity();
+
         if (playerVisualRoot != null)
-            playerVisualRoot.SetActive(false);
+            SetPlayerRenderersEnabled(false);
 
-        // 启用叶子飞行控制
         if (leafFlightController != null)
+        {
+            Debug.Log("Calling LeafFlightController.BeginFlight");
             leafFlightController.BeginFlight();
+        }
+        else
+        {
+            Debug.LogError("LeafSequenceTrigger2D: leafFlightController is missing");
+        }
 
-        // 启动乌鸦生成
         if (crowLaneSpawner != null)
             crowLaneSpawner.StartSpawning();
+    }
+
+    private void ClearPlayerVelocity()
+    {
+        if (player == null)
+            return;
+
+        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
+        if (rb == null)
+            return;
+
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+    }
+
+    private void SetPlayerRenderersEnabled(bool enabled)
+    {
+        SpriteRenderer[] renderers = playerVisualRoot.GetComponentsInChildren<SpriteRenderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+            renderers[i].enabled = enabled;
     }
 }
