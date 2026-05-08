@@ -1,49 +1,56 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// 飞行段终点 Trigger
-/// 叶子碰到后结束飞行并切下一关
-/// </summary>
 public sealed class LeafFlightGoalTrigger2D : MonoBehaviour
 {
     [SerializeField] private string nextSceneName;
     [SerializeField] private float delayBeforeLoad = 0.2f;
     [SerializeField] private CrowLaneSpawner crowLaneSpawner;
     [SerializeField] private LeafFlightController leafFlightController;
+    [SerializeField] private bool useFade = true;
+    [SerializeField] private float fadeOutDuration = 0.8f;
 
     private bool hasTriggered;
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (hasTriggered)
             return;
 
-        LeafFlightController leafFlight = collision.GetComponentInParent<LeafFlightController>();
+        LeafFlightController leafFlight = other.GetComponentInParent<LeafFlightController>();
         if (leafFlight == null)
             return;
-
-        hasTriggered = true;
-        StartCoroutine(CompleteLeafSequence());
-    }
-
-    private System.Collections.IEnumerator CompleteLeafSequence()
-    {
-        // 停止乌鸦生成
-        if (crowLaneSpawner != null)
-            crowLaneSpawner.StopSpawning();
-
-        // 结束飞行
-        if (leafFlightController != null)
-            leafFlightController.EndFlight();
-
-        yield return new WaitForSeconds(delayBeforeLoad);
 
         if (string.IsNullOrEmpty(nextSceneName))
         {
             Debug.LogError("LeafFlightGoalTrigger2D: nextSceneName is empty");
-            yield break;
+            return;
         }
+
+        hasTriggered = true;
+        Debug.Log("Leaf flight goal triggered by: " + other.name);
+        StartCoroutine(CompleteLeafSequence(leafFlight));
+    }
+
+    private System.Collections.IEnumerator CompleteLeafSequence(LeafFlightController triggeringLeafFlight)
+    {
+        if (crowLaneSpawner != null)
+            crowLaneSpawner.StopSpawning();
+
+        if (leafFlightController != null)
+            leafFlightController.EndFlight();
+        else if (triggeringLeafFlight != null)
+            triggeringLeafFlight.EndFlight();
+
+        if (useFade)
+        {
+            ScreenFadeController fade = Object.FindAnyObjectByType<ScreenFadeController>();
+            if (fade != null)
+                yield return fade.FadeOut(fadeOutDuration);
+        }
+
+        if (delayBeforeLoad > 0f)
+            yield return new WaitForSeconds(delayBeforeLoad);
 
         SceneManager.LoadScene(nextSceneName);
     }
