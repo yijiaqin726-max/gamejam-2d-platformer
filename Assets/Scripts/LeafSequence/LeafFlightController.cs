@@ -7,29 +7,25 @@ public sealed class LeafFlightController : MonoBehaviour
     [SerializeField] private float burstForwardSpeed = 12f;
     [SerializeField] private float burstDuration = 0.8f;
     [SerializeField] private float burstUpwardSpeed = 2f;
-    [SerializeField] private AnimationCurve burstSpeedCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
-    [SerializeField] private float verticalSpeed = 5f;
-    [SerializeField] private float minY = -2f;
-    [SerializeField] private float maxY = 3f;
+    [SerializeField] private float verticalSpeed = 6f;
+    [SerializeField] private float minY = -4f;
+    [SerializeField] private float maxY = 6f;
     [SerializeField] private Transform flightStartPoint;
     [SerializeField] private GameObject leafVisualRoot;
     [SerializeField] private GameObject playerVisualRoot;
-    [SerializeField] private MonoBehaviour playerController;
+    [SerializeField] private PrototypePlayerController playerController;
     [SerializeField] private bool useWAndS = true;
     [SerializeField] private bool useUpDownArrow = true;
-    [SerializeField] private bool startDisabled = true;
 
-    private bool isFlying;
-    private float burstTimer;
-    private Vector3 flightStartPos;
+    private bool isFlying = false;
+    private float burstTimer = 0f;
 
     private void Start()
     {
-        if (startDisabled)
-        {
-            isFlying = false;
-            enabled = false;
-        }
+        isFlying = false;
+
+        if (leafVisualRoot != null)
+            leafVisualRoot.SetActive(false);
     }
 
     private void Update()
@@ -38,7 +34,15 @@ public sealed class LeafFlightController : MonoBehaviour
             return;
 
         float vertical = GetVerticalInput();
-        float currentForwardSpeed = GetCurrentForwardSpeed();
+
+        float currentForwardSpeed = normalForwardSpeed;
+        if (burstTimer < burstDuration)
+        {
+            float t = burstTimer / Mathf.Max(0.01f, burstDuration);
+            float curve = 1f - Mathf.SmoothStep(0f, 1f, t);
+            currentForwardSpeed = Mathf.Lerp(normalForwardSpeed, burstForwardSpeed, curve);
+            burstTimer += Time.deltaTime;
+        }
 
         Vector3 pos = transform.position;
         pos.x += currentForwardSpeed * Time.deltaTime;
@@ -55,38 +59,28 @@ public sealed class LeafFlightController : MonoBehaviour
     {
         Debug.Log("Leaf flight begin");
 
-        gameObject.SetActive(true);
-        enabled = true;
         isFlying = true;
         burstTimer = 0f;
 
         if (flightStartPoint != null)
-        {
-            flightStartPos = flightStartPoint.position;
-            transform.position = flightStartPos;
-        }
-
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector2.zero;
-            rb.angularVelocity = 0f;
-        }
-
-        if (playerController != null)
-            playerController.enabled = false;
+            transform.position = flightStartPoint.position;
 
         if (leafVisualRoot != null)
             leafVisualRoot.SetActive(true);
 
+        if (playerController != null)
+            playerController.enabled = false;
+
         if (playerVisualRoot != null)
             SetPlayerRenderersEnabled(false);
+
+        Debug.Log("LeafFlightRoot position after BeginFlight: " + transform.position);
     }
 
     public void ResetFlightToStart()
     {
         if (flightStartPoint != null)
-            transform.position = flightStartPos;
+            transform.position = flightStartPoint.position;
     }
 
     public void EndFlight()
@@ -110,40 +104,27 @@ public sealed class LeafFlightController : MonoBehaviour
     {
         float vertical = 0f;
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
-            return vertical;
 
-        if (useWAndS)
+        if (keyboard != null)
         {
-            if (keyboard.wKey.isPressed)
-                vertical += 1f;
-            if (keyboard.sKey.isPressed)
-                vertical -= 1f;
-        }
+            if (useWAndS)
+            {
+                if (keyboard.wKey.isPressed)
+                    vertical += 1f;
+                if (keyboard.sKey.isPressed)
+                    vertical -= 1f;
+            }
 
-        if (useUpDownArrow)
-        {
-            if (keyboard.upArrowKey.isPressed)
-                vertical += 1f;
-            if (keyboard.downArrowKey.isPressed)
-                vertical -= 1f;
+            if (useUpDownArrow)
+            {
+                if (keyboard.upArrowKey.isPressed)
+                    vertical += 1f;
+                if (keyboard.downArrowKey.isPressed)
+                    vertical -= 1f;
+            }
         }
 
         return Mathf.Clamp(vertical, -1f, 1f);
-    }
-
-    private float GetCurrentForwardSpeed()
-    {
-        float currentForwardSpeed = normalForwardSpeed;
-        if (burstTimer < burstDuration)
-        {
-            float t = burstDuration > 0f ? Mathf.Clamp01(burstTimer / burstDuration) : 1f;
-            float curveValue = burstSpeedCurve != null ? burstSpeedCurve.Evaluate(t) : 1f - t;
-            currentForwardSpeed = Mathf.Lerp(normalForwardSpeed, burstForwardSpeed, Mathf.Clamp01(curveValue));
-            burstTimer += Time.deltaTime;
-        }
-
-        return currentForwardSpeed;
     }
 
     private void SetPlayerRenderersEnabled(bool enabled)
