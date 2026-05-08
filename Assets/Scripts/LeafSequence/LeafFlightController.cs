@@ -57,13 +57,18 @@ public sealed class LeafFlightController : MonoBehaviour
 
     public void BeginFlight()
     {
+        Vector3 startPosition = flightStartPoint != null ? flightStartPoint.position : transform.position;
+        BeginFlight(startPosition);
+    }
+
+    public void BeginFlight(Vector3 startPosition)
+    {
         Debug.Log("Leaf flight begin");
 
         isFlying = true;
         burstTimer = 0f;
 
-        if (flightStartPoint != null)
-            transform.position = flightStartPoint.position;
+        transform.position = startPosition;
 
         if (leafVisualRoot != null)
             leafVisualRoot.SetActive(true);

@@ -51,8 +51,11 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
 
         if (leafFlightController != null)
         {
+            Vector3 leafStartPosition = guideLeaf != null ? guideLeaf.transform.position : leafFlightController.transform.position;
+            HideGuideLeafVisual();
             Debug.Log("Calling LeafFlightController.BeginFlight");
-            leafFlightController.BeginFlight();
+            leafFlightController.BeginFlight(leafStartPosition);
+            SwitchCameraToLeafFlightRoot();
         }
         else
         {
@@ -61,6 +64,35 @@ public sealed class LeafSequenceTrigger2D : MonoBehaviour
 
         if (crowLaneSpawner != null)
             crowLaneSpawner.StartSpawning();
+    }
+
+    private void HideGuideLeafVisual()
+    {
+        if (guideLeaf == null)
+            return;
+
+        SpriteRenderer[] renderers = guideLeaf.GetComponentsInChildren<SpriteRenderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+            renderers[i].enabled = false;
+
+        Animator[] animators = guideLeaf.GetComponentsInChildren<Animator>(true);
+        for (int i = 0; i < animators.Length; i++)
+            animators[i].enabled = false;
+
+        Debug.Log("Guide leaf hidden after transform");
+    }
+
+    private void SwitchCameraToLeafFlightRoot()
+    {
+        SimpleCameraFollow cameraFollow = FindAnyObjectByType<SimpleCameraFollow>();
+        if (cameraFollow == null)
+        {
+            Debug.LogWarning("LeafSequenceTrigger2D: SimpleCameraFollow not found");
+            return;
+        }
+
+        cameraFollow.SetTarget(leafFlightController.transform);
+        Debug.Log("Camera now follows LeafFlightRoot");
     }
 
     private void ClearPlayerVelocity()

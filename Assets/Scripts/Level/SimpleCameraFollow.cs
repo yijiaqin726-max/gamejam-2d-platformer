@@ -16,6 +16,11 @@ public sealed class SimpleCameraFollow : MonoBehaviour
 
     private Vector3 velocity = Vector3.zero;
 
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
+    }
+
     private void LateUpdate()
     {
         if (target == null)
