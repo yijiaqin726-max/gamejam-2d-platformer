@@ -88,18 +88,19 @@ public sealed class CollectibleCheckpointOrb : MonoBehaviour
             return;
         }
 
-        if (collision.CompareTag("Player"))
+        if (IsPlayerOrLightOrb(collision))
         {
-            Collect();
+            Collect(collision);
         }
     }
 
-    private void Collect()
+    private void Collect(Collider2D collision)
     {
         isCollected = true;
 
         CheckpointManager.GetInstance().SetCheckpoint(transform.position);
         Debug.Log($"Checkpoint orb collected at: {transform.position}");
+        GrowLightOrb(collision);
 
         if (audioSource != null && collectSfx != null)
         {
@@ -108,6 +109,25 @@ public sealed class CollectibleCheckpointOrb : MonoBehaviour
 
         circleCollider.enabled = false;
         StartCoroutine(FadeAndDestroy());
+    }
+
+    private bool IsPlayerOrLightOrb(Collider2D collision)
+    {
+        if (collision.CompareTag("Player"))
+            return true;
+
+        return collision.GetComponentInParent<PrototypePlayerController>() != null
+            || collision.GetComponentInParent<LightOrbFreeMoveController>() != null
+            || collision.GetComponentInParent<LightOrbGrowthController>() != null;
+    }
+
+    private void GrowLightOrb(Collider2D collision)
+    {
+        LightOrbGrowthController growthController = collision.GetComponentInParent<LightOrbGrowthController>();
+        if (growthController == null)
+            return;
+
+        growthController.GrowOnce();
     }
 
     private IEnumerator FadeAndDestroy()
