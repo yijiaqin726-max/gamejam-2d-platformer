@@ -13,6 +13,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [SerializeField] private float jumpVelocity = 8f;
     [SerializeField] private float doubleJumpHeight = 3.25f;
     [SerializeField] private float jumpTakeoffFrameHoldSeconds = 0.08f;
+    [SerializeField] private float groundCheckRayDistance = 0.05f;
+    [SerializeField] private int landingGroundConfirmFrames = 2;
     [SerializeField] private float nearGroundDistance = 0.18f;
     [SerializeField] private LayerMask groundMask = ~0;
     [SerializeField] private int maxJumps = 2;
@@ -33,6 +35,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [SerializeField] private bool logJumpAnimationDebug = false;
     [SerializeField] private JumpAnimState debugJumpAnimState;
     [SerializeField] private int debugFrameIndex;
+    [SerializeField] private bool debugGroundedNow;
+    [SerializeField] private bool debugConfirmedGrounded;
     [SerializeField] private bool debugGrounded;
     [SerializeField] private bool debugWasGrounded;
     [SerializeField] private bool debugNearGround;
@@ -41,6 +45,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [SerializeField] private bool debugJustTriggeredDoubleJump;
     [SerializeField] private bool debugLandingRecovery;
     [SerializeField] private bool debugLandingRecoveryPlayedForThisLanding;
+    [SerializeField] private float debugGroundCheckRayDistance;
 
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
@@ -52,6 +57,9 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private bool currentAirJumpIsDouble;
     private bool justTriggeredDoubleJumpThisFrame;
     private bool landingRecoveryPlayedForThisLanding;
+    private bool groundedNow;
+    private bool confirmedGrounded;
+    private int groundedConfirmFrameCount;
     private JumpAnimState jumpAnimationState;
     private JumpAnimState lastLoggedJumpAnimState;
     private int facingDirection = 1;
@@ -87,18 +95,26 @@ public sealed class PrototypePlayerController : MonoBehaviour
         }
 
         body.freezeRotation = true;
-        wasGrounded = true;
+        groundedNow = CheckGroundedRaw();
+        confirmedGrounded = groundedNow;
+        groundedConfirmFrameCount = groundedNow ? Mathf.Max(1, landingGroundConfirmFrames) : 0;
+        wasGrounded = confirmedGrounded;
         jumpAnimationState = JumpAnimState.Grounded;
         lastLoggedJumpAnimState = JumpAnimState.Grounded;
         remainingJumps = maxJumps;
         footstepTimer = 0f;
     }
 
+    private void FixedUpdate()
+    {
+        UpdateGroundedConfirmation();
+    }
+
     private void Update()
     {
         justTriggeredDoubleJumpThisFrame = false;
 
-        bool grounded = IsGrounded();
+        bool grounded = confirmedGrounded;
         bool nearGround = IsNearGround(out float nearGroundHitDistance);
 
         if (wasGrounded && !grounded)
@@ -128,10 +144,6 @@ public sealed class PrototypePlayerController : MonoBehaviour
                 isLanding = false;
                 currentAirJumpIsDouble = false;
                 jumpAnimationState = grounded ? JumpAnimState.Grounded : JumpAnimState.Falling;
-                if (grounded)
-                {
-                    landingRecoveryPlayedForThisLanding = false;
-                }
                 UpdateJumpAnimationDebug(grounded, nearGround, nearGroundHitDistance);
                 wasGrounded = grounded;
                 return;
@@ -142,10 +154,6 @@ public sealed class PrototypePlayerController : MonoBehaviour
                 isLanding = false;
                 currentAirJumpIsDouble = false;
                 jumpAnimationState = grounded ? JumpAnimState.Grounded : JumpAnimState.Falling;
-                if (grounded)
-                {
-                    landingRecoveryPlayedForThisLanding = false;
-                }
                 UpdateJumpAnimationDebug(grounded, nearGround, nearGroundHitDistance);
                 wasGrounded = grounded;
                 return;
@@ -279,7 +287,6 @@ public sealed class PrototypePlayerController : MonoBehaviour
             return;
         }
 
-        landingRecoveryPlayedForThisLanding = false;
         currentAirJumpIsDouble = false;
         jumpAnimationState = JumpAnimState.Grounded;
 
@@ -300,7 +307,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
             return false;
         }
 
-        return !wasGrounded && grounded;
+        return !wasGrounded && grounded && body.linearVelocity.y <= 0.05f;
     }
 
     private void StartLandingRecovery()
@@ -348,6 +355,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
     {
         debugJumpAnimState = jumpAnimationState;
         debugFrameIndex = frameAnimator != null ? frameAnimator.CurrentFrameIndex : -1;
+        debugGroundedNow = groundedNow;
+        debugConfirmedGrounded = confirmedGrounded;
         debugGrounded = grounded;
         debugWasGrounded = wasGrounded;
         debugNearGround = nearGround;
@@ -356,11 +365,14 @@ public sealed class PrototypePlayerController : MonoBehaviour
         debugJustTriggeredDoubleJump = justTriggeredDoubleJumpThisFrame;
         debugLandingRecovery = jumpAnimationState == JumpAnimState.LandingRecovery;
         debugLandingRecoveryPlayedForThisLanding = landingRecoveryPlayedForThisLanding;
+        debugGroundCheckRayDistance = groundCheckRayDistance;
 
         if (logJumpAnimationDebug && lastLoggedJumpAnimState != jumpAnimationState)
         {
             Debug.Log("[JumpAnim] state=" + jumpAnimationState
                 + ", frame=" + debugFrameIndex
+                + ", groundedNow=" + debugGroundedNow
+                + ", confirmedGrounded=" + debugConfirmedGrounded
                 + ", grounded=" + grounded
                 + ", wasGrounded=" + wasGrounded
                 + ", nearGround=" + nearGround
