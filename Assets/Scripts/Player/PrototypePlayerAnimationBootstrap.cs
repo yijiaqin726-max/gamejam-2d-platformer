@@ -10,7 +10,6 @@ public sealed class PrototypePlayerAnimationBootstrap : MonoBehaviour
 {
     private void Start()
     {
-#if UNITY_EDITOR
         var frameAnimator = GetComponent<PrototypeFrameAnimator>();
         if (frameAnimator == null)
         {
@@ -18,6 +17,7 @@ public sealed class PrototypePlayerAnimationBootstrap : MonoBehaviour
             return;
         }
 
+#if UNITY_EDITOR
         var idlePaths = CollectSpritePaths("Assets/Animations/Player/Idle/Frames");
         var runLeftPaths = CollectSpritePaths("Assets/Animations/Player/RunLeftLegForward/Frames");
         var runRightPaths = CollectSpritePaths("Assets/Animations/Player/RunRightLegForward/Frames");
@@ -34,6 +34,8 @@ public sealed class PrototypePlayerAnimationBootstrap : MonoBehaviour
 
         Debug.Log($"[PrototypePlayerAnimationBootstrap] Loaded: Idle={idlePaths.Length}, Run={runPaths.Length}, Jump={jumpPaths.Length}, Land={landPaths.Length}, Turn={turnPaths.Length}");
         frameAnimator.Configure(idlePaths, runPaths, jumpPaths, landPaths, turnPaths);
+#else
+        frameAnimator.ConfigureFromResources();
 #endif
     }
 

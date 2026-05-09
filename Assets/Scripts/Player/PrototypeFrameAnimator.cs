@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -6,6 +7,12 @@ using UnityEditor;
 
 public sealed class PrototypeFrameAnimator : MonoBehaviour
 {
+    private const string IdleResourcePath = "Animations/Player/Idle/Frames";
+    private const string RunResourcePath = "Animations/Player/Run/Frames";
+    private const string JumpResourcePath = "Animations/Player/Jump/Frames";
+    private const string LandResourcePath = "Animations/Player/Land/Frames";
+    private const string TurnResourcePath = "Animations/Player/Turn/Frames";
+
     private static readonly string[] DefaultIdlePaths =
     {
         "Assets/Animations/Player/Idle/Frames/player_idle_01.png",
@@ -96,7 +103,24 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
     public void ConfigureDefaultPlayerFrames(float spritePixelsPerUnit = 128f)
     {
+#if UNITY_EDITOR
         Configure(DefaultIdlePaths, DefaultRunPaths, DefaultJumpPaths, DefaultLandPaths, DefaultTurnPaths, spritePixelsPerUnit);
+#else
+        ConfigureFromResources();
+#endif
+    }
+
+    public void ConfigureFromResources()
+    {
+        targetRenderer = targetRenderer != null ? targetRenderer : GetComponent<SpriteRenderer>();
+        idleFrames = LoadSpritesFromResources(IdleResourcePath);
+        runFrames = LoadSpritesFromResources(RunResourcePath);
+        jumpFrames = LoadSpritesFromResources(JumpResourcePath);
+        landFrames = LoadSpritesFromResources(LandResourcePath);
+        turnFrames = LoadSpritesFromResources(TurnResourcePath);
+        LogLoadedFrames();
+        LogMissingFramesWarningIfNeeded();
+        SetState(MotionState.Idle, true);
     }
 
     public void Configure(string[] idlePaths, string[] runPaths, string[] jumpPaths, string[] landPaths, string[] turnPaths, float spritePixelsPerUnit = 128f)
@@ -108,6 +132,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         jumpFrames = LoadSprites(jumpPaths, pixelsPerUnit);
         landFrames = LoadSprites(landPaths ?? System.Array.Empty<string>(), pixelsPerUnit);
         turnFrames = LoadSprites(turnPaths ?? System.Array.Empty<string>(), pixelsPerUnit);
+        LogLoadedFrames();
         LogMissingFramesWarningIfNeeded();
         SetState(MotionState.Idle, true);
     }
@@ -285,6 +310,56 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
             hasLoggedMissingFramesWarning = true;
         }
 #endif
+    }
+
+    private void LogLoadedFrames()
+    {
+        Debug.Log("[PrototypeFrameAnimator] Loaded frames: Idle=" + idleFrames.Length
+            + ", Run=" + runFrames.Length
+            + ", Jump=" + jumpFrames.Length
+            + ", Land=" + landFrames.Length
+            + ", Turn=" + turnFrames.Length);
+    }
+
+    private static Sprite[] LoadSpritesFromResources(string resourcePath)
+    {
+        var sprites = Resources.LoadAll<Sprite>(resourcePath);
+        if (sprites == null || sprites.Length == 0)
+        {
+            return System.Array.Empty<Sprite>();
+        }
+
+        return sprites
+            .OrderBy(sprite => ExtractFrameNumber(sprite.name))
+            .ThenBy(sprite => sprite.name)
+            .ToArray();
+    }
+
+    private static int ExtractFrameNumber(string spriteName)
+    {
+        if (string.IsNullOrEmpty(spriteName))
+            return int.MaxValue;
+
+        int multiplier = 1;
+        int value = 0;
+        bool foundDigit = false;
+
+        for (int i = spriteName.Length - 1; i >= 0; i--)
+        {
+            char c = spriteName[i];
+            if (c >= '0' && c <= '9')
+            {
+                foundDigit = true;
+                value += (c - '0') * multiplier;
+                multiplier *= 10;
+            }
+            else if (foundDigit)
+            {
+                break;
+            }
+        }
+
+        return foundDigit ? value : int.MaxValue;
     }
 
     private static Sprite[] LoadSprites(string[] paths, float pixelsPerUnit)
