@@ -17217,10 +17217,10 @@ MonoBehaviour:
   doubleJumpSfx: {fileID: 8300000, guid: 380e7f5d65bae324895866c9134808a0, type: 3}
   jumpSfxVolume: 0.8
   grassFootstepSfx:
-  - {fileID: 8300000, guid: eea837addfa6a1d499a9d4318a06978b, type: 3}
-  - {fileID: 8300000, guid: df4e23028e7ce0f408fcda58ba00d106, type: 3}
-  - {fileID: 8300000, guid: 2919b0a7c481a4f4bbe8cb2b2798517a, type: 3}
-  - {fileID: 8300000, guid: f44c9fc8ddaaf2e428fcaec9821cf431, type: 3}
+  - {fileID: 8300000, guid: eae631414d5e77a468451c2a3bb98d41, type: 3}
+  - {fileID: 8300000, guid: 4c75e30a78b6398449db9d2a88660365, type: 3}
+  - {fileID: 8300000, guid: bba50331c72016947b7b68c1b6e0b700, type: 3}
+  - {fileID: 8300000, guid: bc9334c1a3ae55f42ae29d0c9b924201, type: 3}
   footstepVolume: 0.45
   footstepInterval: 0.32
   minFootstepSpeed: 0.1

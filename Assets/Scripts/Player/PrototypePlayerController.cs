@@ -13,7 +13,9 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [SerializeField] private float jumpVelocity = 8f;
     [SerializeField] private float doubleJumpHeight = 3.25f;
     [SerializeField] private float jumpTakeoffFrameHoldSeconds = 0.08f;
-    [SerializeField] private float groundCheckRayDistance = 0.05f;
+    [SerializeField] private float groundCheckRayDistance = 0.12f;
+    [SerializeField] private float footRaySpacing = 0.15f;
+    [SerializeField] private float maxGroundAngle = 60f;
     [SerializeField] private int landingGroundConfirmFrames = 2;
     [SerializeField] private float nearGroundDistance = 0.18f;
     [SerializeField] private LayerMask groundMask = ~0;
@@ -46,6 +48,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [SerializeField] private bool debugLandingRecovery;
     [SerializeField] private bool debugLandingRecoveryPlayedForThisLanding;
     [SerializeField] private float debugGroundCheckRayDistance;
+    [SerializeField] private Vector2 debugGroundHitNormal = Vector2.up;
+    [SerializeField] private float debugGroundAngle;
 
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
@@ -66,6 +70,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private int remainingJumps;
     private float footstepTimer;
     private float jumpTakeoffTimer;
+    private Vector2 groundHitNormal = Vector2.up;
+    private float groundAngle;
 
     private enum JumpAnimState
     {
@@ -365,7 +371,9 @@ public sealed class PrototypePlayerController : MonoBehaviour
         debugJustTriggeredDoubleJump = justTriggeredDoubleJumpThisFrame;
         debugLandingRecovery = jumpAnimationState == JumpAnimState.LandingRecovery;
         debugLandingRecoveryPlayedForThisLanding = landingRecoveryPlayedForThisLanding;
-        debugGroundCheckRayDistance = groundCheckRayDistance;
+        debugGroundCheckRayDistance = GetEffectiveGroundCheckDistance();
+        debugGroundHitNormal = groundHitNormal;
+        debugGroundAngle = groundAngle;
 
         if (logJumpAnimationDebug && lastLoggedJumpAnimState != jumpAnimationState)
         {
@@ -377,6 +385,8 @@ public sealed class PrototypePlayerController : MonoBehaviour
                 + ", wasGrounded=" + wasGrounded
                 + ", nearGround=" + nearGround
                 + ", hitDistance=" + nearGroundHitDistance
+                + ", groundNormal=" + debugGroundHitNormal
+                + ", groundAngle=" + debugGroundAngle
                 + ", yVelocity=" + debugVerticalVelocity
                 + ", justDoubleJump=" + debugJustTriggeredDoubleJump
                 + ", landingRecovery=" + debugLandingRecovery
@@ -408,25 +418,31 @@ public sealed class PrototypePlayerController : MonoBehaviour
     {
         if (body != null && body.linearVelocity.y > 0.05f)
         {
+            groundHitNormal = Vector2.up;
+            groundAngle = 0f;
             return false;
         }
 
-        RaycastHit2D[] hits = Physics2D.RaycastAll(GetGroundCheckOrigin(), Vector2.down, Mathf.Max(0.01f, groundCheckRayDistance), groundMask);
-        for (int i = 0; i < hits.Length; i++)
+        Vector2[] origins = GetGroundCheckOrigins();
+        float distance = GetEffectiveGroundCheckDistance();
+        groundHitNormal = Vector2.up;
+        groundAngle = 0f;
+
+        for (int originIndex = 0; originIndex < origins.Length; originIndex++)
         {
-            RaycastHit2D hit = hits[i];
-            if (!hit.collider || hit.collider.isTrigger)
+            RaycastHit2D[] hits = Physics2D.RaycastAll(origins[originIndex], Vector2.down, distance, groundMask);
+            for (int hitIndex = 0; hitIndex < hits.Length; hitIndex++)
             {
-                continue;
-            }
+                RaycastHit2D hit = hits[hitIndex];
+                if (!IsValidGroundHit(hit, out float angle))
+                {
+                    continue;
+                }
 
-            Transform hitTransform = hit.collider.transform;
-            if (hitTransform == transform || hitTransform.IsChildOf(transform))
-            {
-                continue;
+                groundHitNormal = hit.normal;
+                groundAngle = angle;
+                return true;
             }
-
-            return true;
         }
 
         return false;
@@ -437,10 +453,52 @@ public sealed class PrototypePlayerController : MonoBehaviour
         if (bodyCollider != null)
         {
             Bounds bounds = bodyCollider.bounds;
-            return new Vector2(bounds.center.x, bounds.min.y);
+            return new Vector2(bounds.center.x, bounds.min.y + 0.02f);
         }
 
         return (Vector2)transform.position + Vector2.down * 0.15f;
+    }
+
+    private Vector2[] GetGroundCheckOrigins()
+    {
+        Vector2 center = GetGroundCheckOrigin();
+        float spacing = Mathf.Max(0.01f, footRaySpacing);
+
+        if (bodyCollider != null)
+        {
+            Bounds bounds = bodyCollider.bounds;
+            spacing = Mathf.Min(spacing, Mathf.Max(0.01f, bounds.extents.x * 0.85f));
+        }
+
+        return new[]
+        {
+            center + Vector2.left * spacing,
+            center,
+            center + Vector2.right * spacing
+        };
+    }
+
+    private float GetEffectiveGroundCheckDistance()
+    {
+        return Mathf.Max(0.08f, groundCheckRayDistance);
+    }
+
+    private bool IsValidGroundHit(RaycastHit2D hit, out float angle)
+    {
+        angle = 0f;
+        if (!hit.collider || hit.collider.isTrigger)
+        {
+            return false;
+        }
+
+        Transform hitTransform = hit.collider.transform;
+        if (hitTransform == transform || hitTransform.IsChildOf(transform))
+        {
+            return false;
+        }
+
+        angle = Vector2.Angle(hit.normal, Vector2.up);
+        return angle <= Mathf.Clamp(maxGroundAngle, 0f, 89f);
     }
 
     private bool IsNearGround(out float hitDistance)
@@ -536,9 +594,45 @@ public sealed class PrototypePlayerController : MonoBehaviour
             origin = (Vector2)transform.position + Vector2.down * 0.15f;
         }
 
-        Gizmos.color = confirmedGrounded ? Color.green : Color.yellow;
-        Gizmos.DrawSphere(origin, 0.025f);
-        Gizmos.DrawLine(origin, origin + Vector2.down * Mathf.Max(0.01f, groundCheckRayDistance));
+        Vector2[] origins = drawCollider != null
+            ? GetGroundCheckOriginsForCollider(drawCollider)
+            : new[] { origin + Vector2.left * footRaySpacing, origin, origin + Vector2.right * footRaySpacing };
+        float distance = Mathf.Max(0.08f, groundCheckRayDistance);
+
+        for (int i = 0; i < origins.Length; i++)
+        {
+            bool hitGround = TryGetGroundHitForGizmo(origins[i], distance);
+            Gizmos.color = hitGround ? Color.green : Color.red;
+            Gizmos.DrawSphere(origins[i], 0.025f);
+            Gizmos.DrawLine(origins[i], origins[i] + Vector2.down * distance);
+        }
+    }
+
+    private Vector2[] GetGroundCheckOriginsForCollider(Collider2D drawCollider)
+    {
+        Bounds bounds = drawCollider.bounds;
+        Vector2 center = new Vector2(bounds.center.x, bounds.min.y + 0.02f);
+        float spacing = Mathf.Min(Mathf.Max(0.01f, footRaySpacing), Mathf.Max(0.01f, bounds.extents.x * 0.85f));
+        return new[]
+        {
+            center + Vector2.left * spacing,
+            center,
+            center + Vector2.right * spacing
+        };
+    }
+
+    private bool TryGetGroundHitForGizmo(Vector2 origin, float distance)
+    {
+        RaycastHit2D[] hits = Physics2D.RaycastAll(origin, Vector2.down, distance, groundMask);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (IsValidGroundHit(hits[i], out _))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public bool IsLeafFlying()
