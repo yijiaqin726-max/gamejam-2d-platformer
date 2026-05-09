@@ -110,6 +110,8 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     public bool HasJumpLandingRecoveryFrames => jumpFrames != null && jumpFrames.Length > 10;
     public bool HasLandFrames => landFrames != null && landFrames.Length > 0;
     public bool HasTurnFrames => turnFrames != null && turnFrames.Length > 0;
+    public int CurrentFrameIndex => frameIndex;
+    public MotionState CurrentState => currentState;
 
     public void ConfigureDefaultPlayerFrames(float spritePixelsPerUnit = 128f)
     {
@@ -149,6 +151,13 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
     public void SetState(MotionState state, bool forceRestart = false)
     {
+        if (state == MotionState.Jump)
+        {
+            // 外部如果只请求 Jump，默认进入空中上升循环，避免完整 0-10 循环把落地帧带到空中。
+            PlayJumpRisingLoop();
+            return;
+        }
+
         if (!HasFramesForState(state))
         {
             HandleMissingStateFrames(state);
@@ -179,6 +188,12 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     {
         // 起跳瞬间只显示第 1 帧；不影响物理高度。
         SetJumpFrameRange(1, 1, false, false);
+    }
+
+    public void PlayDoubleJumpTakeoff()
+    {
+        // 二段跳发生在空中，不播放地面起跳帧 1；用 2-3 做快速空中再起跳。
+        SetJumpFrameRange(2, 3, false, false);
     }
 
     public void PlayJumpRisingLoop()
