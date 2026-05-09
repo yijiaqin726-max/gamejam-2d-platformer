@@ -42,7 +42,12 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         "Assets/Animations/Player/Jump/Frames/player_jump_02.png",
         "Assets/Animations/Player/Jump/Frames/player_jump_03.png",
         "Assets/Animations/Player/Jump/Frames/player_jump_04.png",
-        "Assets/Animations/Player/Jump/Frames/player_jump_05.png"
+        "Assets/Animations/Player/Jump/Frames/player_jump_05.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_06.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_07.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_08.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_09.png",
+        "Assets/Animations/Player/Jump/Frames/player_jump_10.png"
     };
 
     private static readonly string[] DefaultLandPaths =
@@ -91,13 +96,18 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     private int frameIndex;
     private bool landingComplete;
     private bool turnComplete;
+    private bool useJumpFrameRange;
+    private bool jumpFrameRangeLoops;
+    private int jumpFrameRangeStart;
+    private int jumpFrameRangeEnd;
     private static bool hasLoggedMissingFramesWarning;
 
-    public bool IsLandingComplete => landingComplete || !HasLandFrames;
+    public bool IsLandingComplete => landingComplete || (!HasLandFrames && !HasJumpLandingRecoveryFrames);
     public bool IsTurnComplete => turnComplete || !HasTurnFrames;
     public bool HasIdleFrames => idleFrames != null && idleFrames.Length > 0;
     public bool HasRunFrames => runFrames != null && runFrames.Length > 0;
     public bool HasJumpFrames => jumpFrames != null && jumpFrames.Length > 0;
+    public bool HasJumpLandingRecoveryFrames => jumpFrames != null && jumpFrames.Length > 10;
     public bool HasLandFrames => landFrames != null && landFrames.Length > 0;
     public bool HasTurnFrames => turnFrames != null && turnFrames.Length > 0;
 
@@ -151,6 +161,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         }
 
         currentState = state;
+        useJumpFrameRange = false;
         timer = 0f;
         frameIndex = 0;
         if (state == MotionState.Land)
@@ -162,6 +173,30 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
             turnComplete = false;
         }
         ApplyFrame();
+    }
+
+    public void PlayJumpTakeoff()
+    {
+        // 起跳瞬间只显示第 1 帧；不影响物理高度。
+        SetJumpFrameRange(1, 1, false, false);
+    }
+
+    public void PlayJumpRisingLoop()
+    {
+        // 上升阶段只循环 2-3，绝不播放落地帧。
+        SetJumpFrameRange(2, 3, true, false);
+    }
+
+    public void PlayJumpFallingLoop()
+    {
+        // 下落阶段只循环 4-5，落地前绝不播放 6-10。
+        SetJumpFrameRange(4, 5, true, false);
+    }
+
+    public void PlayJumpLandingRecovery()
+    {
+        // 落地后才播放 6-10，且只播放一次。
+        SetJumpFrameRange(6, 10, false, true);
     }
 
     private void Awake()
@@ -220,6 +255,26 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
             }
             frameIndex++;
         }
+        else if (currentState == MotionState.Jump && useJumpFrameRange)
+        {
+            if (jumpFrameRangeLoops)
+            {
+                frameIndex++;
+                if (frameIndex > jumpFrameRangeEnd)
+                    frameIndex = jumpFrameRangeStart;
+            }
+            else
+            {
+                if (frameIndex >= jumpFrameRangeEnd)
+                {
+                    if (jumpFrameRangeStart >= 6)
+                        landingComplete = true;
+                    return;
+                }
+
+                frameIndex++;
+            }
+        }
         else
         {
             frameIndex = (frameIndex + 1) % frames.Length;
@@ -264,6 +319,41 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     private bool HasAnyFrames()
     {
         return HasIdleFrames || HasRunFrames || HasJumpFrames || HasLandFrames || HasTurnFrames;
+    }
+
+    private void SetJumpFrameRange(int start, int end, bool loop, bool landingRecovery)
+    {
+        if (!HasJumpFrames)
+        {
+            if (landingRecovery)
+                landingComplete = true;
+            return;
+        }
+
+        int clampedStart = Mathf.Clamp(start, 0, jumpFrames.Length - 1);
+        int clampedEnd = Mathf.Clamp(end, clampedStart, jumpFrames.Length - 1);
+
+        if (currentState == MotionState.Jump
+            && useJumpFrameRange
+            && jumpFrameRangeStart == clampedStart
+            && jumpFrameRangeEnd == clampedEnd
+            && jumpFrameRangeLoops == loop)
+        {
+            return;
+        }
+
+        currentState = MotionState.Jump;
+        useJumpFrameRange = true;
+        jumpFrameRangeLoops = loop;
+        jumpFrameRangeStart = clampedStart;
+        jumpFrameRangeEnd = clampedEnd;
+        frameIndex = clampedStart;
+        timer = 0f;
+
+        if (landingRecovery)
+            landingComplete = false;
+
+        ApplyFrame();
     }
 
     private bool HasFramesForState(MotionState state)

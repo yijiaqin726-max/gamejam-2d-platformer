@@ -11,7 +11,9 @@ public sealed class PrototypePlayerController : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float jumpVelocity = 8f;
+    [SerializeField] private float doubleJumpVelocityMultiplier = 0.65f;
     [SerializeField] private float doubleJumpHeight = 3.25f;
+    [SerializeField] private float jumpTakeoffFrameHoldSeconds = 0.08f;
     [SerializeField] private LayerMask groundMask = ~0;
     [SerializeField] private int maxJumps = 2;
     [SerializeField] private AudioSource audioSource;
@@ -33,9 +35,21 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private bool wasGrounded;
     private bool isLanding;
     private bool isTurning;
+    private JumpAnimationState jumpAnimationState;
     private int facingDirection = 1;
     private int remainingJumps;
     private float footstepTimer;
+    private float jumpTakeoffTimer;
+
+    private enum JumpAnimationState
+    {
+        None,
+        Grounded,
+        Takeoff,
+        Rising,
+        Falling,
+        LandingRecovery
+    }
 
     private void Awake()
     {
@@ -54,6 +68,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
         wasGrounded = true;
         remainingJumps = maxJumps;
         footstepTimer = 0f;
+        _ = doubleJumpHeight; // 旧 Inspector 字段保留兼容，二段跳高度现在由 doubleJumpVelocityMultiplier 控制。
     }
 
     private void Update()
@@ -64,21 +79,25 @@ public sealed class PrototypePlayerController : MonoBehaviour
             remainingJumps = maxJumps;
         }
 
-        if (!wasGrounded && grounded && frameAnimator != null && frameAnimator.HasLandFrames)
+        if (!wasGrounded && grounded && frameAnimator != null && frameAnimator.HasJumpLandingRecoveryFrames)
         {
+            // 只有真正落地后才进入 6-10 落地恢复帧。
             isLanding = true;
             isTurning = false;
-            frameAnimator.SetState(PrototypeFrameAnimator.MotionState.Land, true);
+            jumpAnimationState = JumpAnimationState.LandingRecovery;
+            frameAnimator.PlayJumpLandingRecovery();
         }
 
         if (isLanding)
         {
-            if (frameAnimator == null || !frameAnimator.HasLandFrames)
+            if (frameAnimator == null || !frameAnimator.HasJumpLandingRecoveryFrames)
             {
                 isLanding = false;
+                jumpAnimationState = JumpAnimationState.Grounded;
             }
             else
             {
+                // 落地恢复 6-10 播放期间锁输入：不能左右移动、不能跳跃、不能二段跳。
                 var velocity = body.linearVelocity;
                 velocity.x = 0f;
                 body.linearVelocity = velocity;
@@ -86,6 +105,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
                 if (frameAnimator.IsLandingComplete)
                 {
                     isLanding = false;
+                    jumpAnimationState = JumpAnimationState.Grounded;
                 }
                 else
                 {
@@ -151,6 +171,9 @@ public sealed class PrototypePlayerController : MonoBehaviour
             if (grounded)
             {
                 body.linearVelocity = new Vector2(body.linearVelocity.x, jumpVelocity);
+                jumpAnimationState = JumpAnimationState.Takeoff;
+                jumpTakeoffTimer = jumpTakeoffFrameHoldSeconds;
+                frameAnimator?.PlayJumpTakeoff();
                 if (audioSource != null && jumpSfx != null)
                 {
                     audioSource.PlayOneShot(jumpSfx, jumpSfxVolume);
@@ -158,7 +181,10 @@ public sealed class PrototypePlayerController : MonoBehaviour
             }
             else
             {
-                body.linearVelocity = new Vector2(body.linearVelocity.x, CalculateJumpVelocity(doubleJumpHeight));
+                body.linearVelocity = new Vector2(body.linearVelocity.x, jumpVelocity * doubleJumpVelocityMultiplier);
+                jumpAnimationState = JumpAnimationState.Takeoff;
+                jumpTakeoffTimer = jumpTakeoffFrameHoldSeconds;
+                frameAnimator?.PlayJumpTakeoff();
                 if (audioSource != null && doubleJumpSfx != null)
                 {
                     audioSource.PlayOneShot(doubleJumpSfx, jumpSfxVolume);
@@ -185,14 +211,30 @@ public sealed class PrototypePlayerController : MonoBehaviour
 
         if (!grounded)
         {
-            frameAnimator?.SetState(PrototypeFrameAnimator.MotionState.Jump);
+            if (jumpAnimationState == JumpAnimationState.Takeoff && jumpTakeoffTimer > 0f)
+            {
+                // 起跳瞬间短暂保持第 1 帧，不改变物理跳跃高度。
+                jumpTakeoffTimer -= Time.deltaTime;
+            }
+            else if (body.linearVelocity.y > 0.01f)
+            {
+                jumpAnimationState = JumpAnimationState.Rising;
+                frameAnimator?.PlayJumpRisingLoop();
+            }
+            else
+            {
+                jumpAnimationState = JumpAnimationState.Falling;
+                frameAnimator?.PlayJumpFallingLoop();
+            }
         }
         else if (Mathf.Abs(horizontal) > 0.01f)
         {
+            jumpAnimationState = JumpAnimationState.Grounded;
             frameAnimator?.SetState(PrototypeFrameAnimator.MotionState.Run);
         }
         else
         {
+            jumpAnimationState = JumpAnimationState.Grounded;
             frameAnimator?.SetState(PrototypeFrameAnimator.MotionState.Idle);
         }
 
@@ -208,12 +250,6 @@ public sealed class PrototypePlayerController : MonoBehaviour
 
         var origin = (Vector2)transform.position + Vector2.down * 0.15f;
         return Physics2D.Raycast(origin, Vector2.down, 0.55f, groundMask);
-    }
-
-    private float CalculateJumpVelocity(float jumpHeight)
-    {
-        var gravity = Mathf.Abs(Physics2D.gravity.y * body.gravityScale);
-        return Mathf.Sqrt(2f * gravity * jumpHeight);
     }
 
     private static float GetHorizontalInput()

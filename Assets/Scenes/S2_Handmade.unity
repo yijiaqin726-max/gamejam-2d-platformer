@@ -5774,7 +5774,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -19
+  m_SortingOrder: 20
   m_MaskInteraction: 0
   m_Sprite: {fileID: 461831870}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -6783,7 +6783,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -19
+  m_SortingOrder: 20
   m_MaskInteraction: 0
   m_Sprite: {fileID: 461831870}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -17083,10 +17083,10 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 1
+  m_Mass: 3
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 3
+  m_GravityScale: 4
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -17203,7 +17203,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PrototypePlayerController
   moveSpeed: 5
   jumpVelocity: 8
-  doubleJumpHeight: 3.25
+  doubleJumpHeight: 2.8
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
