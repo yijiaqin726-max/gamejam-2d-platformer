@@ -13,6 +13,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [SerializeField] private float jumpVelocity = 8f;
     [SerializeField] private float doubleJumpHeight = 3.25f;
     [SerializeField] private float jumpTakeoffFrameHoldSeconds = 0.08f;
+    [SerializeField] private float nearGroundDistance = 0.18f;
     [SerializeField] private LayerMask groundMask = ~0;
     [SerializeField] private int maxJumps = 2;
     [SerializeField] private AudioSource audioSource;
@@ -31,33 +32,39 @@ public sealed class PrototypePlayerController : MonoBehaviour
     [Header("Jump Animation Debug")]
     [SerializeField] private bool logJumpAnimationDebug = false;
     [SerializeField] private JumpAnimState debugJumpAnimState;
+    [SerializeField] private int debugFrameIndex;
     [SerializeField] private bool debugGrounded;
     [SerializeField] private bool debugWasGrounded;
+    [SerializeField] private bool debugNearGround;
+    [SerializeField] private float debugNearGroundHitDistance;
     [SerializeField] private float debugVerticalVelocity;
-    [SerializeField] private int debugFrameIndex;
+    [SerializeField] private bool debugJustTriggeredDoubleJump;
     [SerializeField] private bool debugLandingRecovery;
-    [SerializeField] private bool debugIsDoubleJump;
+    [SerializeField] private bool debugLandingRecoveryPlayedForThisLanding;
 
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
+    private Collider2D bodyCollider;
     private PrototypeFrameAnimator frameAnimator;
     private bool wasGrounded;
     private bool isLanding;
     private bool isTurning;
+    private bool currentAirJumpIsDouble;
+    private bool justTriggeredDoubleJumpThisFrame;
+    private bool landingRecoveryPlayedForThisLanding;
     private JumpAnimState jumpAnimationState;
+    private JumpAnimState lastLoggedJumpAnimState;
     private int facingDirection = 1;
     private int remainingJumps;
     private float footstepTimer;
     private float jumpTakeoffTimer;
-    private bool currentAirJumpIsDouble;
-    private JumpAnimState lastLoggedJumpAnimState;
 
     private enum JumpAnimState
     {
         Grounded,
         FirstJumpTakeoff,
         FirstJumpRising,
-        DoubleJumpTakeoff,
+        DoubleJumpStart,
         DoubleJumpRising,
         Falling,
         LandingRecovery
@@ -67,7 +74,9 @@ public sealed class PrototypePlayerController : MonoBehaviour
     {
         body = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        bodyCollider = GetComponent<Collider2D>();
         frameAnimator = GetComponent<PrototypeFrameAnimator>();
+
         if (audioSource == null)
         {
             audioSource = GetComponent<AudioSource>();
@@ -76,6 +85,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
                 Debug.LogWarning("AudioSource not found on Player Prototype. Please add an AudioSource component.");
             }
         }
+
         body.freezeRotation = true;
         wasGrounded = true;
         jumpAnimationState = JumpAnimState.Grounded;
@@ -86,52 +96,69 @@ public sealed class PrototypePlayerController : MonoBehaviour
 
     private void Update()
     {
-        var grounded = IsGrounded();
+        justTriggeredDoubleJumpThisFrame = false;
+
+        bool grounded = IsGrounded();
+        bool nearGround = IsNearGround(out float nearGroundHitDistance);
+
+        if (wasGrounded && !grounded)
+        {
+            landingRecoveryPlayedForThisLanding = false;
+        }
+
         if (grounded && body.linearVelocity.y <= 0.01f)
         {
             remainingJumps = maxJumps;
         }
 
-        if (!wasGrounded && grounded && frameAnimator != null && frameAnimator.HasJumpLandingRecoveryFrames)
+        if (ShouldStartLandingRecovery(grounded))
         {
-            // 只有真正落地后才进入 6-10 落地恢复帧。
-            isLanding = true;
-            isTurning = false;
-            jumpAnimationState = JumpAnimState.LandingRecovery;
-            frameAnimator.PlayJumpLandingRecovery();
+            StartLandingRecovery();
         }
 
         if (isLanding)
         {
+            // 6-10 落地恢复帧期间锁输入：不能移动、不能跳、不能二段跳。
+            Vector2 velocity = body.linearVelocity;
+            velocity.x = 0f;
+            body.linearVelocity = velocity;
+
             if (frameAnimator == null || !frameAnimator.HasJumpLandingRecoveryFrames)
             {
                 isLanding = false;
-                jumpAnimationState = JumpAnimState.Grounded;
                 currentAirJumpIsDouble = false;
+                jumpAnimationState = grounded ? JumpAnimState.Grounded : JumpAnimState.Falling;
+                if (grounded)
+                {
+                    landingRecoveryPlayedForThisLanding = false;
+                }
+                UpdateJumpAnimationDebug(grounded, nearGround, nearGroundHitDistance);
+                wasGrounded = grounded;
+                return;
+            }
+
+            if (frameAnimator.IsLandingComplete)
+            {
+                isLanding = false;
+                currentAirJumpIsDouble = false;
+                jumpAnimationState = grounded ? JumpAnimState.Grounded : JumpAnimState.Falling;
+                if (grounded)
+                {
+                    landingRecoveryPlayedForThisLanding = false;
+                }
+                UpdateJumpAnimationDebug(grounded, nearGround, nearGroundHitDistance);
+                wasGrounded = grounded;
+                return;
             }
             else
             {
-                // 落地恢复 6-10 播放期间锁输入：不能左右移动、不能跳跃、不能二段跳。
-                var velocity = body.linearVelocity;
-                velocity.x = 0f;
-                body.linearVelocity = velocity;
-
-                if (frameAnimator.IsLandingComplete)
-                {
-                    isLanding = false;
-                    jumpAnimationState = JumpAnimState.Grounded;
-                    currentAirJumpIsDouble = false;
-                }
-                else
-                {
-                    UpdateJumpAnimationDebug(grounded);
-                    wasGrounded = grounded;
-                    return;
-                }
+                UpdateJumpAnimationDebug(grounded, nearGround, nearGroundHitDistance);
+                wasGrounded = grounded;
+                return;
             }
         }
 
-        var horizontal = GetHorizontalInput();
+        float horizontal = GetHorizontalInput();
 
         if (!isTurning
             && grounded
@@ -153,9 +180,9 @@ public sealed class PrototypePlayerController : MonoBehaviour
             }
             else
             {
-                var v = body.linearVelocity;
-                v.x = 0f;
-                body.linearVelocity = v;
+                Vector2 turnVelocity = body.linearVelocity;
+                turnVelocity.x = 0f;
+                body.linearVelocity = turnVelocity;
 
                 if (frameAnimator.IsTurnComplete)
                 {
@@ -165,13 +192,14 @@ public sealed class PrototypePlayerController : MonoBehaviour
                 }
                 else
                 {
+                    UpdateJumpAnimationDebug(grounded, nearGround, nearGroundHitDistance);
                     wasGrounded = grounded;
                     return;
                 }
             }
         }
 
-        var moveVelocity = body.linearVelocity;
+        Vector2 moveVelocity = body.linearVelocity;
         moveVelocity.x = horizontal * moveSpeed;
         body.linearVelocity = moveVelocity;
 
@@ -181,7 +209,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
             spriteRenderer.flipX = facingDirection < 0;
         }
 
-        var jumpPressed = WasJumpPressed();
+        bool jumpPressed = WasJumpPressed();
         if (jumpPressed && remainingJumps > 0)
         {
             if (grounded)
@@ -190,29 +218,109 @@ public sealed class PrototypePlayerController : MonoBehaviour
                 jumpAnimationState = JumpAnimState.FirstJumpTakeoff;
                 jumpTakeoffTimer = jumpTakeoffFrameHoldSeconds;
                 currentAirJumpIsDouble = false;
+                landingRecoveryPlayedForThisLanding = false;
                 frameAnimator?.PlayJumpTakeoff();
-                if (audioSource != null && jumpSfx != null)
-                {
-                    audioSource.PlayOneShot(jumpSfx, jumpSfxVolume);
-                }
+                PlayJumpSfx(jumpSfx);
             }
             else
             {
+                // 二段跳高度保持原项目逻辑：仍然使用 doubleJumpHeight + CalculateJumpVelocity。
                 body.linearVelocity = new Vector2(body.linearVelocity.x, CalculateJumpVelocity(doubleJumpHeight));
-                jumpAnimationState = JumpAnimState.DoubleJumpTakeoff;
+                jumpAnimationState = JumpAnimState.DoubleJumpStart;
                 jumpTakeoffTimer = jumpTakeoffFrameHoldSeconds;
                 currentAirJumpIsDouble = true;
+                justTriggeredDoubleJumpThisFrame = true;
                 frameAnimator?.PlayDoubleJumpTakeoff();
-                if (audioSource != null && doubleJumpSfx != null)
-                {
-                    audioSource.PlayOneShot(doubleJumpSfx, jumpSfxVolume);
-                }
+                PlayJumpSfx(doubleJumpSfx);
             }
+
             remainingJumps--;
             grounded = false;
+            nearGround = false;
+            nearGroundHitDistance = float.PositiveInfinity;
         }
 
-        if (grounded && Mathf.Abs(horizontal) > minFootstepSpeed && !isLanding && !isTurning && grassFootstepSfx != null && grassFootstepSfx.Length > 0 && audioSource != null)
+        UpdateFootsteps(grounded, horizontal);
+        UpdateJumpAnimationState(grounded, nearGround);
+        UpdateJumpAnimationDebug(grounded, nearGround, nearGroundHitDistance);
+        wasGrounded = grounded;
+    }
+
+    private void UpdateJumpAnimationState(bool grounded, bool nearGround)
+    {
+        if (!grounded)
+        {
+            bool holdingTakeoff = (jumpAnimationState == JumpAnimState.FirstJumpTakeoff
+                || jumpAnimationState == JumpAnimState.DoubleJumpStart)
+                && jumpTakeoffTimer > 0f;
+
+            if (holdingTakeoff)
+            {
+                // 起跳帧只短暂保持，不改变 Rigidbody2D 的高度或速度。
+                jumpTakeoffTimer -= Time.deltaTime;
+                return;
+            }
+
+            if (body.linearVelocity.y > 0.01f)
+            {
+                jumpAnimationState = currentAirJumpIsDouble ? JumpAnimState.DoubleJumpRising : JumpAnimState.FirstJumpRising;
+                frameAnimator?.PlayJumpRisingLoop();
+                return;
+            }
+
+            jumpAnimationState = JumpAnimState.Falling;
+            frameAnimator?.PlayJumpFallingLoop();
+            return;
+        }
+
+        if (ShouldStartLandingRecovery(grounded))
+        {
+            StartLandingRecovery();
+            return;
+        }
+
+        landingRecoveryPlayedForThisLanding = false;
+        currentAirJumpIsDouble = false;
+        jumpAnimationState = JumpAnimState.Grounded;
+
+        if (Mathf.Abs(body.linearVelocity.x) > 0.01f)
+        {
+            frameAnimator?.SetState(PrototypeFrameAnimator.MotionState.Run);
+        }
+        else
+        {
+            frameAnimator?.SetState(PrototypeFrameAnimator.MotionState.Idle);
+        }
+    }
+
+    private bool ShouldStartLandingRecovery(bool grounded)
+    {
+        if (isLanding || landingRecoveryPlayedForThisLanding || frameAnimator == null || !frameAnimator.HasJumpLandingRecoveryFrames)
+        {
+            return false;
+        }
+
+        return !wasGrounded && grounded;
+    }
+
+    private void StartLandingRecovery()
+    {
+        isLanding = true;
+        isTurning = false;
+        landingRecoveryPlayedForThisLanding = true;
+        jumpAnimationState = JumpAnimState.LandingRecovery;
+        frameAnimator?.PlayJumpLandingRecovery();
+    }
+
+    private void UpdateFootsteps(bool grounded, float horizontal)
+    {
+        if (grounded
+            && Mathf.Abs(horizontal) > minFootstepSpeed
+            && !isLanding
+            && !isTurning
+            && grassFootstepSfx != null
+            && grassFootstepSfx.Length > 0
+            && audioSource != null)
         {
             footstepTimer += Time.deltaTime;
             if (footstepTimer >= footstepInterval)
@@ -226,61 +334,41 @@ public sealed class PrototypePlayerController : MonoBehaviour
         {
             footstepTimer = 0f;
         }
-
-        if (!grounded)
-        {
-            if ((jumpAnimationState == JumpAnimState.FirstJumpTakeoff || jumpAnimationState == JumpAnimState.DoubleJumpTakeoff) && jumpTakeoffTimer > 0f)
-            {
-                // 起跳瞬间短暂保持对应起跳帧，不改变物理跳跃高度。
-                jumpTakeoffTimer -= Time.deltaTime;
-            }
-            else if (body.linearVelocity.y > 0.01f)
-            {
-                jumpAnimationState = currentAirJumpIsDouble ? JumpAnimState.DoubleJumpRising : JumpAnimState.FirstJumpRising;
-                frameAnimator?.PlayJumpRisingLoop();
-            }
-            else
-            {
-                jumpAnimationState = JumpAnimState.Falling;
-                frameAnimator?.PlayJumpFallingLoop();
-            }
-        }
-        else if (Mathf.Abs(horizontal) > 0.01f)
-        {
-            jumpAnimationState = JumpAnimState.Grounded;
-            currentAirJumpIsDouble = false;
-            frameAnimator?.SetState(PrototypeFrameAnimator.MotionState.Run);
-        }
-        else
-        {
-            jumpAnimationState = JumpAnimState.Grounded;
-            currentAirJumpIsDouble = false;
-            frameAnimator?.SetState(PrototypeFrameAnimator.MotionState.Idle);
-        }
-
-        UpdateJumpAnimationDebug(grounded);
-        wasGrounded = grounded;
     }
 
-    private void UpdateJumpAnimationDebug(bool grounded)
+    private void PlayJumpSfx(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            audioSource.PlayOneShot(clip, jumpSfxVolume);
+        }
+    }
+
+    private void UpdateJumpAnimationDebug(bool grounded, bool nearGround, float nearGroundHitDistance)
     {
         debugJumpAnimState = jumpAnimationState;
+        debugFrameIndex = frameAnimator != null ? frameAnimator.CurrentFrameIndex : -1;
         debugGrounded = grounded;
         debugWasGrounded = wasGrounded;
+        debugNearGround = nearGround;
+        debugNearGroundHitDistance = nearGroundHitDistance;
         debugVerticalVelocity = body != null ? body.linearVelocity.y : 0f;
-        debugFrameIndex = frameAnimator != null ? frameAnimator.CurrentFrameIndex : -1;
+        debugJustTriggeredDoubleJump = justTriggeredDoubleJumpThisFrame;
         debugLandingRecovery = jumpAnimationState == JumpAnimState.LandingRecovery;
-        debugIsDoubleJump = currentAirJumpIsDouble;
+        debugLandingRecoveryPlayedForThisLanding = landingRecoveryPlayedForThisLanding;
 
         if (logJumpAnimationDebug && lastLoggedJumpAnimState != jumpAnimationState)
         {
             Debug.Log("[JumpAnim] state=" + jumpAnimationState
+                + ", frame=" + debugFrameIndex
                 + ", grounded=" + grounded
                 + ", wasGrounded=" + wasGrounded
-                + ", y=" + debugVerticalVelocity
-                + ", frame=" + debugFrameIndex
+                + ", nearGround=" + nearGround
+                + ", hitDistance=" + nearGroundHitDistance
+                + ", yVelocity=" + debugVerticalVelocity
+                + ", justDoubleJump=" + debugJustTriggeredDoubleJump
                 + ", landingRecovery=" + debugLandingRecovery
-                + ", doubleJump=" + debugIsDoubleJump);
+                + ", landingPlayed=" + debugLandingRecoveryPlayedForThisLanding);
             lastLoggedJumpAnimState = jumpAnimationState;
         }
     }
@@ -292,27 +380,74 @@ public sealed class PrototypePlayerController : MonoBehaviour
             return false;
         }
 
-        var origin = (Vector2)transform.position + Vector2.down * 0.15f;
+        Vector2 origin = (Vector2)transform.position + Vector2.down * 0.15f;
         return Physics2D.Raycast(origin, Vector2.down, 0.55f, groundMask);
+    }
+
+    private bool IsNearGround(out float hitDistance)
+    {
+        hitDistance = float.PositiveInfinity;
+        if (body != null && body.linearVelocity.y > 0.01f)
+        {
+            return false;
+        }
+
+        Vector2 origin;
+        if (bodyCollider != null)
+        {
+            Bounds bounds = bodyCollider.bounds;
+            origin = new Vector2(bounds.center.x, bounds.min.y);
+        }
+        else
+        {
+            origin = (Vector2)transform.position + Vector2.down * 0.15f;
+        }
+
+        RaycastHit2D[] hits = Physics2D.RaycastAll(origin, Vector2.down, Mathf.Max(0.01f, nearGroundDistance), groundMask);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            RaycastHit2D hit = hits[i];
+            if (!hit.collider)
+            {
+                continue;
+            }
+
+            // 脚底检测只认外部地面，跳过玩家自己或玩家子物体上的 Collider。
+            if (hit.collider.isTrigger)
+            {
+                continue;
+            }
+
+            Transform hitTransform = hit.collider.transform;
+            if (hitTransform == transform || hitTransform.IsChildOf(transform))
+            {
+                continue;
+            }
+
+            hitDistance = hit.distance;
+            return hit.distance <= nearGroundDistance;
+        }
+
+        return false;
     }
 
     private float CalculateJumpVelocity(float jumpHeight)
     {
-        var gravity = Mathf.Abs(Physics2D.gravity.y * body.gravityScale);
+        float gravity = Mathf.Abs(Physics2D.gravity.y * body.gravityScale);
         return Mathf.Sqrt(2f * gravity * jumpHeight);
     }
 
     private static float GetHorizontalInput()
     {
 #if ENABLE_INPUT_SYSTEM
-        var keyboard = Keyboard.current;
+        Keyboard keyboard = Keyboard.current;
         if (keyboard == null)
         {
             return 0f;
         }
 
-        var left = keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed;
-        var right = keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed;
+        bool left = keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed;
+        bool right = keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed;
         return (right ? 1f : 0f) - (left ? 1f : 0f);
 #else
         return Input.GetAxisRaw("Horizontal");
@@ -322,7 +457,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
     private static bool WasJumpPressed()
     {
 #if ENABLE_INPUT_SYSTEM
-        var keyboard = Keyboard.current;
+        Keyboard keyboard = Keyboard.current;
         return keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
 #else
         return Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.Space);

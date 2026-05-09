@@ -153,7 +153,6 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     {
         if (state == MotionState.Jump)
         {
-            // 外部如果只请求 Jump，默认进入空中上升循环，避免完整 0-10 循环把落地帧带到空中。
             PlayJumpRisingLoop();
             return;
         }
@@ -186,32 +185,44 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
     public void PlayJumpTakeoff()
     {
-        // 起跳瞬间只显示第 1 帧；不影响物理高度。
+        SetJumpFrameRange(1, 1, false, false);
+        // 一段跳刚离地只显示第 1 帧，不改变任何跳跃物理。
         SetJumpFrameRange(1, 1, false, false);
     }
 
     public void PlayDoubleJumpTakeoff()
     {
-        // 二段跳发生在空中，不播放地面起跳帧 1；用 2-3 做快速空中再起跳。
-        SetJumpFrameRange(2, 3, false, false);
+        SetJumpFrameRange(3, 3, false, false);
+        // 二段跳发生在空中，不能播放 0/1/2；从第 3 帧开始。
+        SetJumpFrameRange(3, 3, false, false);
     }
 
     public void PlayJumpRisingLoop()
     {
-        // 上升阶段只循环 2-3，绝不播放落地帧。
-        SetJumpFrameRange(2, 3, true, false);
+        SetJumpFrameRange(3, 4, true, false);
+        // 上升阶段循环 3-4，绝不播放落地恢复帧。
+        SetJumpFrameRange(3, 4, true, false);
     }
 
     public void PlayJumpFallingLoop()
     {
-        // 下落阶段只循环 4-5，落地前绝不播放 6-10。
+        SetJumpFrameRange(4, 5, true, false);
+        // 下落阶段循环 4-5，落地前绝不播放 6-10。
         SetJumpFrameRange(4, 5, true, false);
     }
 
     public void PlayJumpLandingRecovery()
     {
-        // 落地后才播放 6-10，且只播放一次。
         SetJumpFrameRange(6, 10, false, true);
+        // 接近地面或真正落地后才播放 6-10，且只播放一次。
+        SetJumpFrameRange(6, 10, false, true);
+    }
+
+    public void PlayJumpAirLoop()
+    {
+        SetJumpFrameRange(4, 5, true, false);
+        // 空中通用下落循环，保留给需要强制 4-5 的调用方。
+        SetJumpFrameRange(4, 5, true, false);
     }
 
     private void Awake()
@@ -225,7 +236,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
     private void Update()
     {
-        var frames = GetFrames();
+        Sprite[] frames = GetFrames();
         if (targetRenderer == null || frames.Length == 0)
         {
             if (currentState == MotionState.Land)
@@ -240,7 +251,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         }
 
         timer += Time.deltaTime;
-        var frameTime = 1f / Mathf.Max(1f, GetFps());
+        float frameTime = 1f / Mathf.Max(1f, GetFps());
         if (currentState == MotionState.Idle && frameIndex == 0)
         {
             frameTime += Mathf.Max(0f, idleFirstFrameHoldSeconds);
@@ -276,14 +287,18 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
             {
                 frameIndex++;
                 if (frameIndex > jumpFrameRangeEnd)
+                {
                     frameIndex = jumpFrameRangeStart;
+                }
             }
             else
             {
                 if (frameIndex >= jumpFrameRangeEnd)
                 {
                     if (jumpFrameRangeStart >= 6)
+                    {
                         landingComplete = true;
+                    }
                     return;
                 }
 
@@ -300,7 +315,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
     private void ApplyFrame()
     {
-        var frames = GetFrames();
+        Sprite[] frames = GetFrames();
         if (targetRenderer != null && frames.Length > 0)
         {
             targetRenderer.sprite = frames[Mathf.Clamp(frameIndex, 0, frames.Length - 1)];
@@ -341,7 +356,9 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         if (!HasJumpFrames)
         {
             if (landingRecovery)
+            {
                 landingComplete = true;
+            }
             return;
         }
 
@@ -366,7 +383,9 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
         timer = 0f;
 
         if (landingRecovery)
+        {
             landingComplete = false;
+        }
 
         ApplyFrame();
     }
@@ -428,7 +447,7 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
     private static Sprite[] LoadSpritesFromResources(string resourcePath)
     {
-        var sprites = Resources.LoadAll<Sprite>(resourcePath);
+        Sprite[] sprites = Resources.LoadAll<Sprite>(resourcePath);
         if (sprites == null || sprites.Length == 0)
         {
             return System.Array.Empty<Sprite>();
@@ -443,7 +462,9 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     private static int ExtractFrameNumber(string spriteName)
     {
         if (string.IsNullOrEmpty(spriteName))
+        {
             return int.MaxValue;
+        }
 
         int multiplier = 1;
         int value = 0;
@@ -469,8 +490,8 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
 
     private static Sprite[] LoadSprites(string[] paths, float pixelsPerUnit)
     {
-        var sprites = new Sprite[paths.Length];
-        for (var i = 0; i < paths.Length; i++)
+        Sprite[] sprites = new Sprite[paths.Length];
+        for (int i = 0; i < paths.Length; i++)
         {
             sprites[i] = LoadSprite(paths[i], pixelsPerUnit);
         }
@@ -481,13 +502,13 @@ public sealed class PrototypeFrameAnimator : MonoBehaviour
     private static Sprite LoadSprite(string path, float pixelsPerUnit)
     {
 #if UNITY_EDITOR
-        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
         if (sprite != null)
         {
             return sprite;
         }
 
-        var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        Texture2D texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         if (texture != null)
         {
             texture.filterMode = FilterMode.Bilinear;
