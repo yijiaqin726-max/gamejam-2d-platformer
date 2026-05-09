@@ -385,15 +385,62 @@ public sealed class PrototypePlayerController : MonoBehaviour
         }
     }
 
-    private bool IsGrounded()
+    private void UpdateGroundedConfirmation()
+    {
+        groundedNow = CheckGroundedRaw();
+        if (groundedNow)
+        {
+            groundedConfirmFrameCount++;
+        }
+        else
+        {
+            groundedConfirmFrameCount = 0;
+            confirmedGrounded = false;
+        }
+
+        if (groundedConfirmFrameCount >= Mathf.Max(1, landingGroundConfirmFrames))
+        {
+            confirmedGrounded = true;
+        }
+    }
+
+    private bool CheckGroundedRaw()
     {
         if (body != null && body.linearVelocity.y > 0.05f)
         {
             return false;
         }
 
-        Vector2 origin = (Vector2)transform.position + Vector2.down * 0.15f;
-        return Physics2D.Raycast(origin, Vector2.down, 0.55f, groundMask);
+        RaycastHit2D[] hits = Physics2D.RaycastAll(GetGroundCheckOrigin(), Vector2.down, Mathf.Max(0.01f, groundCheckRayDistance), groundMask);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            RaycastHit2D hit = hits[i];
+            if (!hit.collider || hit.collider.isTrigger)
+            {
+                continue;
+            }
+
+            Transform hitTransform = hit.collider.transform;
+            if (hitTransform == transform || hitTransform.IsChildOf(transform))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private Vector2 GetGroundCheckOrigin()
+    {
+        if (bodyCollider != null)
+        {
+            Bounds bounds = bodyCollider.bounds;
+            return new Vector2(bounds.center.x, bounds.min.y);
+        }
+
+        return (Vector2)transform.position + Vector2.down * 0.15f;
     }
 
     private bool IsNearGround(out float hitDistance)
@@ -407,8 +454,7 @@ public sealed class PrototypePlayerController : MonoBehaviour
         Vector2 origin;
         if (bodyCollider != null)
         {
-            Bounds bounds = bodyCollider.bounds;
-            origin = new Vector2(bounds.center.x, bounds.min.y);
+            origin = GetGroundCheckOrigin();
         }
         else
         {
@@ -474,6 +520,25 @@ public sealed class PrototypePlayerController : MonoBehaviour
 #else
         return Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.Space);
 #endif
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Collider2D drawCollider = bodyCollider != null ? bodyCollider : GetComponent<Collider2D>();
+        Vector2 origin;
+        if (drawCollider != null)
+        {
+            Bounds bounds = drawCollider.bounds;
+            origin = new Vector2(bounds.center.x, bounds.min.y);
+        }
+        else
+        {
+            origin = (Vector2)transform.position + Vector2.down * 0.15f;
+        }
+
+        Gizmos.color = confirmedGrounded ? Color.green : Color.yellow;
+        Gizmos.DrawSphere(origin, 0.025f);
+        Gizmos.DrawLine(origin, origin + Vector2.down * Mathf.Max(0.01f, groundCheckRayDistance));
     }
 
     public bool IsLeafFlying()
