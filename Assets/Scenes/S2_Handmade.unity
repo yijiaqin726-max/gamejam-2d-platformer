@@ -17204,6 +17204,10 @@ MonoBehaviour:
   moveSpeed: 5
   jumpVelocity: 8
   doubleJumpHeight: 2.8
+  jumpTakeoffFrameHoldSeconds: 0.08
+  groundCheckRayDistance: 0.05
+  landingGroundConfirmFrames: 2
+  nearGroundDistance: 0.18
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -17220,6 +17224,20 @@ MonoBehaviour:
   footstepVolume: 0.45
   footstepInterval: 0.32
   minFootstepSpeed: 0.1
+  logJumpAnimationDebug: 0
+  debugJumpAnimState: 0
+  debugFrameIndex: 0
+  debugGroundedNow: 0
+  debugConfirmedGrounded: 0
+  debugGrounded: 0
+  debugWasGrounded: 0
+  debugNearGround: 0
+  debugNearGroundHitDistance: 0
+  debugVerticalVelocity: 0
+  debugJustTriggeredDoubleJump: 0
+  debugLandingRecovery: 0
+  debugLandingRecoveryPlayedForThisLanding: 0
+  debugGroundCheckRayDistance: 0
 --- !u!82 &2004910086
 AudioSource:
   m_ObjectHideFlags: 0
